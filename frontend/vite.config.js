@@ -19,4 +19,11 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
   },
+  resolve: {
+    // svelte resuelve su entry `.` contra las condiciones worker/browser/
+    // default. Vite 7 no activa `browser` por defecto en este build y caía
+    // en el server entry (`mount` stub que tira lifecycle_function_unavailable).
+    // Forzar `browser` para que main.js monte el runtime de cliente.
+    conditions: ['module', 'browser', 'import', 'development|production'],
+  },
 });

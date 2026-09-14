@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2.2] — 2026-09-14 — fix: bundle SPA resuelve el runtime client de svelte
+
+Tras v0.2.1 el SPA cargaba pero crasheaba en el browser:
+`Uncaught Svelte error: lifecycle_function_unavailable — mount(...) is not
+available on the server`. El bundle resolvía `svelte` (entry `.`) al **server
+entry** (`svelte/src/index-server.js`), donde `mount` es un stub que siempre
+tira ese error. Vite 7 no activa `browser` por defecto en este build y las
+exports de svelte 5.57 (`worker`/`browser`/`default`) caían en `default`.
+
+### Fixed
+- `frontend/vite.config.js`: `resolve.conditions` con `browser` explícito →
+  `import { mount }` de `main.js` resuelve a `svelte/src/index-client.js`.
+
+### Tests
+- Bundle verificado: desapareció el stub `mount`/mensaje "not available on
+  the server"; el hash cambió (`index-2STselcd.js`). Build worker + frontend
+  verdes, deploy (Version `3a2bd52f`), assets 200.
+
 ## [v0.2.1] — 2026-09-14 — fix: SPA con base `/portal/` (blank screen en prod)
 
 El portal servía el `index.html` (200) pero la pantalla quedaba en blanco:
