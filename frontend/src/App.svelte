@@ -11,8 +11,8 @@
     error = null;
     try {
       const [meRes, appsRes] = await Promise.all([
-        fetch('/api/portal/me', { credentials: 'include' }),
-        fetch('/api/portal/apps', { credentials: 'include' }),
+        fetch('/portal/api/portal/me', { credentials: 'include' }),
+        fetch('/portal/api/portal/apps', { credentials: 'include' }),
       ]);
       const meData = await meRes.json();
       const appsData = await appsRes.json();
