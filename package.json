@@ -1,0 +1,31 @@
+{
+  "name": "sivocloud-portal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Portal admin de SIVOCLOUD — apps.sivocloud.dev/portal. CERO secrets de plataforma: solo env.AUTH Service Binding RPC. Lee metadata de tenant/apps via _auth broker (getTenantInfo, getInstalledApps).",
+  "type": "module",
+  "main": "backend/server.js",
+  "scripts": {
+    "env:show": "bun scripts/check-env.mjs",
+    "env:show:dev": "bun --env-file=./.env.development scripts/check-env.mjs",
+    "dev": "bun scripts/dev-runner.mjs",
+    "dev:dev": "DEV_ENV=development bun scripts/dev-runner.mjs",
+    "dev:backend:dev": "cd backend && bun --env-file=../.env.development run dev",
+    "dev:backend:prod": "cd backend && bun --env-file=../.env.production run dev",
+    "start": "bun --env-file=./.env.development --cwd=backend run start",
+    "build:worker": "bun scripts/build.mjs",
+    "deploy:dev": "wrangler deploy --env dev",
+    "deploy:prod": "wrangler deploy --env prod",
+    "check": "cd backend && bun run check",
+    "kill": "bun scripts/kill-port.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@sivo/flow-engine": "2.8.1",
+    "hono": "^4.6.14",
+    "jsonata": "^1.8.6"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

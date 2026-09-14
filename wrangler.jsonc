@@ -1,0 +1,57 @@
+// wrangler.jsonc — Deploy config para _portal (CF Worker single).
+//
+// _portal es la **prueba viva** del patrón zero-secrets: NO tiene
+// secrets de plataforma, NO tiene D1 binding. Solo el Service Binding
+// `env.AUTH` contra _auth. Toda metadata de tenant/apps llega via
+// RPC `getTenantInfo` / `getInstalledApps` / `getTenantCredentials`.
+//
+// URL canónica: `apps.sivocloud.dev/portal/` (single-tenant resolver
+// desde el cookie, no path-based como sivo-pos que usa
+// `/sivopos/<tenant>/`).
+{
+  "name": "sivocloud-portal",
+  "main": "backend/worker-entry.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "no_handle_cross_request_promise_resolution"],
+
+  "observability": {
+    "enabled": true
+  },
+
+  "assets": {
+    "directory": "./frontend/dist/",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+
+  "routes": [
+    {
+      "pattern": "apps.sivocloud.dev/portal/*",
+      "zone_name": "sivocloud.dev"
+    }
+  ],
+
+  // ZERO vars (no hay config de plataforma). El portal SOLO necesita el
+  // binding `AUTH` (Service Binding) para hablar con _auth.
+  "env": {
+    "dev": {
+      "vars": {
+        "APP_DOMAIN":   "localhost",
+        "NODE_ENV":     "development"
+      },
+      "services": [
+        { "binding": "AUTH", "service": "sivocloud-auth-dev" }
+      ]
+    },
+    "prod": {
+      "vars": {
+        "APP_DOMAIN":   "apps.sivocloud.dev",
+        "NODE_ENV":     "production"
+      },
+      "services": [
+        { "binding": "AUTH", "service": "sivocloud-auth" }
+      ]
+    }
+  }
+}

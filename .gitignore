@@ -1,0 +1,15 @@
+# _portal/.gitignore — cositas que NO van al repo
+.env
+.env.development
+.env.production
+.env.dev
+.env.prod
+.env.local
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+frontend/dist/
+bun.lock
+dist/
+*.log
+.DS_Store
