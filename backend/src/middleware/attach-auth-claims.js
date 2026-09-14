@@ -27,6 +27,23 @@ import { getEnv } from '../lib/env.mjs'
 const COOKIE_NAME_PRIMARY = '__Secure-sivocloud_session'
 const COOKIE_NAME_DEV = 'sivocloud_session'
 const DEV_CLAIMS_HEADER = 'x-dev-claims'
+const AUTH_LOGIN_URL = 'https://auth.sivocloud.dev/login'
+
+/**
+ * Responde JSON 401 a clientes API (Accept: application/json) o 302 al
+ * login a browsers (Accept: text/html). El return_to es la URL actual
+ * completa del portal, así después del login el user vuelve acá.
+ */
+function browserOrApiResponse(c, status, jsonBody) {
+  const accept = c.req.raw.headers.get('accept') || ''
+  const isBrowser = accept.includes('text/html')
+  if (isBrowser) {
+    const returnTo = new URL(c.req.raw.url).toString()
+    const url = `${AUTH_LOGIN_URL}?return_to=${encodeURIComponent(returnTo)}`
+    return c.redirect(url, 302)
+  }
+  return c.json(jsonBody, status)
+}
 
 function readCookieFromHeader(cookieHeader, name) {
   if (!cookieHeader) return null
@@ -96,11 +113,15 @@ export function attachAuthClaims({ rpcBinding = 'AUTH', publicPaths = [], skipTe
     }
 
     if (!claims) {
-      return c.json({ error: 'No session', hint: 'login required' }, 401)
+      // Browsers (Accept: text/html) → 302 al login con return_to.
+      // API clients (Accept: application/json) → 401 JSON.
+      return browserOrApiResponse(c, 401,
+        { error: 'No session', hint: 'login required' },
+      )
     }
 
     if (claims.exp && claims.exp < Math.floor(Date.now() / 1000)) {
-      return c.json({ error: 'Session expired' }, 401)
+      return browserOrApiResponse(c, 401, { error: 'Session expired' })
     }
 
     const user = { id: claims.sub, role: claims.role }

@@ -7,8 +7,14 @@
  *      El worker corre bajo `apps.sivocloud.dev/portal/*` (route en
  *      wrangler.jsonc). Después del strip, el path queda como
  *      `/api/portal/me` o `/api/health` (lo que sea que el Hono matchea).
- *   3. Routing:
+ *   3. Auth gate: requests HTML sin cookie de sesión se redirigen 302 a
+ *      `auth.sivocloud.dev/login?return_to=<current>` antes de delegar.
+ *      Requests API (`Accept: application/json`) pasan al middleware Hono
+ *      que responde 401 JSON — los apps son server-to-server y manejan
+ *      "no session" como ausencia de datos.
+ *   4. Routing:
  *      - `/api/*` → app.fetch (Hono + flow-engine).
+ *      - `/health` → app.fetch (Hono directo).
  *      - resto → env.ASSETS.fetch (SPA shell).
  *
  * Phase 4 (2026-09-14): ZERO secrets de plataforma. El worker NO firma
@@ -25,6 +31,9 @@
 import { app } from './app.js'
 
 const APP_PREFIX = '/portal/'
+const AUTH_LOGIN_URL = 'https://auth.sivocloud.dev/login'
+const COOKIE_PRIMARY = '__Secure-sivocloud_session'
+const COOKIE_DEV = 'sivocloud_session'
 
 function stripAppPrefix(pathname) {
   if (pathname === '/portal' || pathname === '/portal/') {
@@ -42,6 +51,16 @@ function isHandledByApp(restPath) {
       || restPath === '/health'
 }
 
+function isBrowserRequest(request) {
+  const accept = request.headers.get('accept') || ''
+  return accept.includes('text/html')
+}
+
+function hasSessionCookie(request) {
+  const cookie = request.headers.get('cookie') || ''
+  return cookie.includes(COOKIE_PRIMARY) || cookie.includes(COOKIE_DEV)
+}
+
 async function trySpaFallback(request, env) {
   const url = new URL(request.url)
   const indexUrl = new URL('/index.html', url.origin)
@@ -55,6 +74,15 @@ async function trySpaFallback(request, env) {
 export default {
   async fetch(request, env, ctx) {
     globalThis.SIVO_ENV = env
+
+    // Auth gate (HTML only): browsers sin cookie de sesión → 302 al login.
+    // Esta decisión corre ANTES del strip del prefix para que el
+    // return_to conserve el path original completo.
+    if (isBrowserRequest(request) && !hasSessionCookie(request)) {
+      const returnTo = new URL(request.url).toString()
+      const url = `${AUTH_LOGIN_URL}?return_to=${encodeURIComponent(returnTo)}`
+      return Response.redirect(url, 302)
+    }
 
     // Strip /portal/ del URL.
     const url = new URL(request.url)
