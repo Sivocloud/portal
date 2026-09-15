@@ -5,10 +5,12 @@
  * `ctx` = { data, base, authBase, appsBase, tenantId, user, role, query }.
  */
 import { portalView } from './portal.js'
+import { billingView } from './billing.js'
 import { errorView, notFoundView } from './misc.js'
 
 const VIEWS = {
   'portal': portalView,
+  'billing': billingView,
   'error': errorView,
   'not-found': notFoundView,
 }

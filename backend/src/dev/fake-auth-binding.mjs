@@ -87,5 +87,40 @@ export function createFakeAuthBinding({ baseUrl } = {}) {
         return { valid: false, reason: `rpc_error: ${err.message}` }
       }
     },
+
+    // ─── Billing (mismo dispatch /api/auth/broker/billing por action) ──────
+    getSubscription({ cookie } = {}) {
+      return callBilling(url, 'getSubscription', { cookie })
+    },
+    getUsageSummary({ cookie, from, to } = {}) {
+      return callBilling(url, 'getUsageSummary', { cookie, from, to })
+    },
+    getInvoices({ cookie, limit } = {}) {
+      return callBilling(url, 'getInvoices', { cookie, limit })
+    },
+    setSupportPlan({ cookie, planCode } = {}) {
+      return callBilling(url, 'setSupportPlan', { cookie, planCode })
+    },
+    setAutoRenew({ cookie, enabled } = {}) {
+      return callBilling(url, 'setAutoRenew', { cookie, enabled })
+    },
+  }
+}
+
+async function callBilling(url, action, payload) {
+  if (!payload.cookie || typeof payload.cookie !== 'string') {
+    return { valid: false }
+  }
+  try {
+    const res = await fetch(`${url}/api/auth/broker/billing`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action, ...payload }),
+    })
+    if (!res.ok) return { valid: false }
+    const json = await res.json()
+    return json.data || { valid: false }
+  } catch (err) {
+    return { valid: false, reason: `rpc_error: ${err.message}` }
   }
 }

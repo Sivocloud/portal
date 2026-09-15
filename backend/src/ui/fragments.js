@@ -41,6 +41,25 @@ export function fmtDateTime(ts) {
   return d.toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
+/** Moneda desde centavos (ej. 2000, 'USD' → "$20.00"). */
+export function fmtMoney(cents, currency = 'USD') {
+  const n = Number(cents || 0) / 100
+  const sym = { USD: '$', EUR: '€', COP: '$' }[currency] || '$'
+  return `${sym}${n.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+/** Período legible: "01–30 sep". */
+export function fmtPeriod(start, end) {
+  if (!start || !end) return '—'
+  const a = new Date(Number(start))
+  const b = new Date(Number(end))
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return '—'
+  const fmt = (d, withMonth) => d.toLocaleDateString('es-CO', withMonth
+    ? { day: '2-digit', month: 'short' }
+    : { day: '2-digit' })
+  return `${fmt(a, false)}–${fmt(b, true)}`
+}
+
 /** Badge con clase según estado. */
 export function statusBadge(status) {
   const map = {

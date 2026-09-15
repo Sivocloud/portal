@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.4.0] — 2026-09-15 — Facturación: suscripción, consumo y facturas
+
+Activa la sección **Facturación** (antes placeholder en el nav): el dueño de
+la cuenta ve su suscripción (fee por app + metered con franquicia), el consumo
+del período y las facturas, y puede cambiar el plan de soporte y la
+auto-renovación. Sigue zero-secrets: todo llega vía RPC `env.AUTH`.
+
+### Added
+- Vista `billing` (`src/ui/templates/billing.js`) con KPIs (próximo cobro
+  estimado, consumo del período), tabla de conceptos, selector de plan de
+  soporte (Estándar/Premium/Sin soporte), toggle de auto-renovación, consumo
+  con barra de franquicia y listado de facturas.
+- Nodos RPC `portal-billing` (agrega `getSubscription` + `getUsageSummary` +
+  `getInvoices`), `portal-set-support` y `portal-set-autorenew`.
+- Flows `ui.billing`, `ui.billing-support`, `ui.billing-autorenew`
+  (`GET /facturacion`, `POST /facturacion/soporte`, `POST /facturacion/autorenew`).
+  Los writes swapean `#billing-body` (HTMX) con toast OOB.
+- Helpers `fmtMoney` / `fmtPeriod` y CSS de billing (`.kpi-grid`, `.tbl`,
+  `.progress`, `.pill-group`).
+- `fake-auth-binding.mjs`: mock local de los 5 RPCs de billing.
+
+### Changed
+- **NAV**: "Facturación" pasa de `NAV_SOON` a `NAV` (`/facturacion`);
+  "Configuración" sigue como próxima.
+
+Tests: el portal no tiene suite propia; se validó el arranque de `fe.mjs` (7
+rutas) y los RPCs de billing en `_auth` (`bun test` 44/44).
+
 ## [v0.3.0] — 2026-09-15 — Server-rendered (HTMX) + subdominio `portal.sivocloud.dev`
 
 El portal migra de **SPA Svelte + Vite** a **server-rendered con HTMX**

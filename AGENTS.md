@@ -142,6 +142,9 @@ Service Binding `AUTH` debe estar declarado en `wrangler.jsonc`
 
 ## Pendiente / futuro
 
-- Secciones **Facturación** y **Configuración** (hoy placeholders en `NAV_SOON`).
+- Sección **Configuración** (hoy placeholder en `NAV_SOON`).
 - RBAC en el portal: hoy zero-secrets RPC; si Config necesita escribir, hay
   que definir nuevos RPC en `_auth` (no darle D1 al portal).
+- **Facturación** (v0.4.0) es read + writes acotados (soporte, auto-renovación)
+  vía RPC `env.AUTH` (`getSubscription`/`getUsageSummary`/`getInvoices`/
+  `setSupportPlan`/`setAutoRenew`). El cobro aún es interno (sin Paddle).

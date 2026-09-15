@@ -135,6 +135,27 @@ code, .mono { font-family: var(--mono); font-size: .92em; }
 
 .empty { padding: 34px 20px; text-align: center; color: var(--muted); }
 
+/* ── Billing / KPIs ───────────────────────────────────── */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+.kpi .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.kpi .value { font-size: 24px; font-weight: 750; margin-top: 6px; }
+.kpi .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.tbl td { padding: 10px; border-bottom: 1px solid var(--border); }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.progress { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-top: 6px; }
+.progress > span { display: block; height: 100%; background: var(--primary); }
+
+.pill-group { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.pill-group button { border: 0; background: transparent; padding: 7px 12px; font-size: 13px; cursor: pointer; color: var(--text); }
+.pill-group button + button { border-left: 1px solid var(--border); }
+.pill-group button.active { background: var(--primary); color: #fff; }
+
 /* ── Toast ────────────────────────────────────────────── */
 #toast { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 80; }
 .toast { padding: 11px 15px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 560; color: #fff; box-shadow: var(--shadow); animation: slidein .16s ease-out; max-width: 380px; }

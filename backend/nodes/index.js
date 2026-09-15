@@ -7,14 +7,20 @@
  *   - `ui.html-response`: render server-side (HTMX).
  */
 
-import portalMe       from './auth/portal-me.js'
-import portalApps     from './auth/portal-apps.js'
-import portalOverview from './portal/portal-overview.js'
-import htmlResponse   from './html/html-response.js'
+import portalMe            from './auth/portal-me.js'
+import portalApps          from './auth/portal-apps.js'
+import portalOverview      from './portal/portal-overview.js'
+import portalBilling       from './portal/portal-billing.js'
+import portalSetSupport    from './portal/portal-set-support.js'
+import portalSetAutoRenew  from './portal/portal-set-autorenew.js'
+import htmlResponse        from './html/html-response.js'
 
 export const extraNodes = [
   portalMe,
   portalApps,
   portalOverview,
+  portalBilling,
+  portalSetSupport,
+  portalSetAutoRenew,
   htmlResponse,
 ]

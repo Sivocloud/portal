@@ -25,6 +25,9 @@ import errorHandler500Flow from './flows/error-handler-500.flow.json' with { typ
 import portalMeFlow       from './flows/portal-me.flow.json' with { type: 'json' }
 import portalAppsFlow     from './flows/portal-apps.flow.json' with { type: 'json' }
 import uiPortalFlow       from './flows/ui.portal.flow.json' with { type: 'json' }
+import uiBillingFlow        from './flows/ui.billing.flow.json' with { type: 'json' }
+import uiBillingSupportFlow from './flows/ui.billing-support.flow.json' with { type: 'json' }
+import uiBillingAutoRenewFlow from './flows/ui.billing-autorenew.flow.json' with { type: 'json' }
 
 import { extraNodes } from './nodes/index.js'
 
@@ -33,6 +36,9 @@ const FLOWS = {
   'portal-me':         portalMeFlow,
   'portal-apps':       portalAppsFlow,
   'ui.portal':         uiPortalFlow,
+  'ui.billing':        uiBillingFlow,
+  'ui.billing-support':   uiBillingSupportFlow,
+  'ui.billing-autorenew': uiBillingAutoRenewFlow,
 }
 
 const __dirname = (() => {

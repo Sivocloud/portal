@@ -12,11 +12,11 @@ import { escapeHtml, icon } from './fragments.js'
 
 const NAV = [
   { key: 'portal', href: '/', label: 'Apps', icon: 'apps' },
+  { key: 'billing', href: '/facturacion', label: 'Facturación', icon: 'billing' },
 ]
 
 // Secciones futuras (placeholder hasta que existan los flows).
 const NAV_SOON = [
-  { key: 'billing', label: 'Facturación', icon: 'billing' },
   { key: 'config', label: 'Configuración', icon: 'config' },
 ]
 
