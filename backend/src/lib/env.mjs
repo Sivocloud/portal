@@ -16,6 +16,13 @@ const KEYS = [
   'NODE_ENV',
   'AUTH_PORT',
   'PORT',
+  // Bases browser-visibles para links (logout / abrir app). En prod apuntan
+  // a auth.sivocloud.dev y apps.sivocloud.dev; en dev se overridean.
+  'AUTH_BASE',
+  'APPS_BASE',
+  // Override per-app (dev): cada app local corre en su propio puerto, así que
+  // `APPS_BASE` (un solo host) no alcanza. JSON: { "<slug>": "<base>" }.
+  'APP_BASES',
 ];
 
 function readEnv() {
@@ -47,4 +54,30 @@ export function resetEnvCache() {
 
 export function getEnvVar(key) {
   return getEnv()[key] || '';
+}
+
+export const DEFAULT_AUTH_BASE = 'https://auth.sivocloud.dev';
+export const DEFAULT_APPS_BASE = 'https://apps.sivocloud.dev';
+
+export function getAuthBase() {
+  return getEnv().AUTH_BASE || DEFAULT_AUTH_BASE;
+}
+
+export function getAppsBase() {
+  return getEnv().APPS_BASE || DEFAULT_APPS_BASE;
+}
+
+/**
+ * Bases por app (override de `APPS_BASE`) para links "Abrir".
+ * `APP_BASES` = JSON `{ "<slug>": "<base>" }`; vacío en prod (usa APPS_BASE).
+ */
+export function getAppBases() {
+  const raw = getEnv().APP_BASES;
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
 }

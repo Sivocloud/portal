@@ -22,12 +22,11 @@
  * Phase 4 (2026-09-14): ZERO secrets de plataforma. Solo `env.AUTH`.
  */
 
-import { getEnv } from '../lib/env.mjs'
+import { getEnv, getAuthBase } from '../lib/env.mjs'
 
 const COOKIE_NAME_PRIMARY = '__Secure-sivocloud_session'
 const COOKIE_NAME_DEV = 'sivocloud_session'
 const DEV_CLAIMS_HEADER = 'x-dev-claims'
-const AUTH_LOGIN_URL = 'https://auth.sivocloud.dev/login'
 
 /**
  * Responde JSON 401 a clientes API (Accept: application/json) o 302 al
@@ -39,7 +38,7 @@ function browserOrApiResponse(c, status, jsonBody) {
   const isBrowser = accept.includes('text/html')
   if (isBrowser) {
     const returnTo = new URL(c.req.raw.url).toString()
-    const url = `${AUTH_LOGIN_URL}?return_to=${encodeURIComponent(returnTo)}`
+    const url = `${getAuthBase()}/login?return_to=${encodeURIComponent(returnTo)}`
     return c.redirect(url, 302)
   }
   return c.json(jsonBody, status)

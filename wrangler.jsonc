@@ -5,9 +5,10 @@
 // `env.AUTH` contra _auth. Toda metadata de tenant/apps llega via
 // RPC `getTenantInfo` / `getInstalledApps` / `getTenantCredentials`.
 //
-// URL canónica: `apps.sivocloud.dev/portal/` (single-tenant resolver
-// desde el cookie, no path-based como sivo-pos que usa
-// `/sivopos/<tenant>/`).
+// URL canónica: `portal.sivocloud.dev/` — subdominio propio, igual que
+// `auth.sivocloud.dev`. El portal es un servicio de plataforma (no una app
+// por-tenant), y resuelve el tenant desde el cookie, no desde el path
+// (sivo-pos usa `/sivopos/<tenant>/`).
 {
   "name": "sivocloud-portal",
   "main": "backend/worker-entry.js",
@@ -18,20 +19,13 @@
     "enabled": true
   },
 
-  "assets": {
-    "directory": "./frontend/dist/",
-    "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
-    "run_worker_first": true
-  },
+  // Server-rendered (HTMX): NO hay SPA ni binding ASSETS. El worker sirve
+  // TODO — páginas HTML (flow ui.portal), fragmentos HTMX, assets estáticos
+  // (/ui/static/*, servidos por Hono) y la API JSON (/api/*).
 
   "routes": [
     {
-      "pattern": "apps.sivocloud.dev/portal",
-      "zone_name": "sivocloud.dev"
-    },
-    {
-      "pattern": "apps.sivocloud.dev/portal/*",
+      "pattern": "portal.sivocloud.dev/*",
       "zone_name": "sivocloud.dev"
     }
   ],
@@ -50,7 +44,7 @@
     },
     "prod": {
       "vars": {
-        "APP_DOMAIN":   "apps.sivocloud.dev",
+        "APP_DOMAIN":   "portal.sivocloud.dev",
         "NODE_ENV":     "production"
       },
       "services": [

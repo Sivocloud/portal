@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.3.0] — 2026-09-15 — Server-rendered (HTMX) + subdominio `portal.sivocloud.dev`
+
+El portal migra de **SPA Svelte + Vite** a **server-rendered con HTMX**
+(mismo patrón que `apps/sivo-pos-htmx`). Toda la UI vive en `backend/src/ui/`;
+se elimina `frontend/` y el binding CF `assets`. La metadata sigue llegando
+por Service Binding RPC (`env.AUTH`) — zero-secrets intacto.
+
+Además pasa de `apps.sivocloud.dev/portal/*` a su **propio subdominio
+`portal.sivocloud.dev/`** (igual que `auth.sivocloud.dev`): es un servicio de
+plataforma, no una app por-tenant. El dashboard vive en `/` y las secciones en
+`/<section>` — se va el redundante `/portal/ui/portal`.
+
+### Added
+- Capa UI server-rendered: `backend/src/ui/{pages,templates,fragments,styles,static}.js`,
+  vendor de HTMX (inlinado) e **infra de islands** (`islands/*.island.js` +
+  `islands-inline.mjs`), pensada para futuras secciones (Facturación,
+  Configuración — hoy placeholders en el nav).
+- Nodo `ui.html-response` (render server-side) + nodo `portal-overview`
+  (agrega `getTenantInfo` + `getInstalledApps` en un solo payload).
+- Flow `ui.portal.flow.json` → `GET /_ui/portal` (dashboard).
+- Scripts `dev-backend.mjs`, `gen-htmx-inline.mjs`, `gen-islands-inline.mjs`.
+- Vars `AUTH_BASE` / `APPS_BASE` (links logout / abrir-app env-aware) y
+  `APP_BASES` (override per-app en dev, JSON `{ "<slug>": "<base>" }`) para
+  que "Abrir" apunte al puerto correcto de cada app local (pos :3032,
+  b2b :3033, …).
+
+### Changed
+- **URL**: `apps.sivocloud.dev/portal/*` → `portal.sivocloud.dev/*` (route en
+  `wrangler.jsonc`; dev replica la raíz en `localhost:3034/`). Dashboard en
+  `/`; assets en `/static/*` (antes `/ui/static/*`); páginas en `/<section>`.
+- `app.js`: Hono sirve `/health`, `/static/*`, `/api/*` y las páginas
+  (`/` + catch-all → flow `ui.*`); se elimina el rewrite `/ui/*` y el prefijo
+  `x-app-prefix`. `worker-entry.js` ya no usa `env.ASSETS`.
+- `@sivo/flow-engine` `2.8.1` → `2.11.0`. Se quita `@hono/node-server`.
+- `package.json`: scripts nuevos (sin Vite); `dev:dev` usa `dev-backend.mjs`.
+
+### Removed
+- `frontend/` (Svelte 5 + Vite 7 + Tailwind/DaisyUI) y el binding `assets`.
+- `lib/portal-path.mjs` y el header `x-app-prefix` (ya no hay prefijo de app).
+- Rutas `apps.sivocloud.dev/portal*` (sin redirect; el `dispatcher` las deja
+  en 404).
+
+### Fixed
+- Links y redirect de login/logout estaban hardcodeados a prod; ahora son
+  env-aware (`AUTH_BASE`/`APPS_BASE`).
+
 ## [v0.2.4] — 2026-09-15 — fix: `/portal` sin barra final caía al dispatcher
 
 `apps.sivocloud.dev/portal` (sin la barra) no matcheaba la route

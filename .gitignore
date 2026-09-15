@@ -7,9 +7,10 @@
 .env.local
 node_modules/
 backend/node_modules/
-frontend/node_modules/
-frontend/dist/
 bun.lock
 dist/
 *.log
 .DS_Store
+
+# docs de nodos generadas por audit-nodes
+backend/nodes/NODES.md

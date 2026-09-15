@@ -1,31 +1,33 @@
 {
   "name": "sivocloud-portal",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "private": true,
-  "description": "Portal admin de SIVOCLOUD — apps.sivocloud.dev/portal. CERO secrets de plataforma: solo env.AUTH Service Binding RPC. Lee metadata de tenant/apps via _auth broker (getTenantInfo, getInstalledApps).",
+  "description": "Portal de SIVOCLOUD — portal.sivocloud.dev. Server-rendered (HTMX) sobre flow-engine, con islands JS. CERO secrets de plataforma: solo env.AUTH Service Binding RPC.",
   "type": "module",
   "main": "backend/server.js",
   "scripts": {
-    "env:show": "bun scripts/check-env.mjs",
-    "env:show:dev": "bun --env-file=./.env.development scripts/check-env.mjs",
-    "dev": "bun scripts/dev-runner.mjs",
-    "dev:dev": "DEV_ENV=development bun scripts/dev-runner.mjs",
-    "dev:backend:dev": "cd backend && bun --env-file=../.env.development run dev",
-    "dev:backend:prod": "cd backend && bun --env-file=../.env.production run dev",
-    "start": "bun --env-file=./.env.development --cwd=backend run start",
+    "dev": "bun scripts/dev-backend.mjs",
+    "dev:dev": "DEV_ENV=development bun scripts/dev-backend.mjs",
+    "start": "bun --env-file=.env.development backend/server.js",
+    "gen:htmx": "bun scripts/gen-htmx-inline.mjs",
+    "gen:islands": "bun scripts/gen-islands-inline.mjs",
     "build:worker": "bun scripts/build.mjs",
+    "lint-flows": "bun node_modules/@sivo/flow-engine/bin/lint-flows.js --dir backend/flows --nodes-entry ./backend/nodes/index.js --nodes-export extraNodes",
+    "audit-nodes": "bun node_modules/@sivo/flow-engine/bin/lint-node-defaults.js --dir backend/nodes --flat --strict-jsdoc --allow-package @cfworker/json-schema",
+    "check": "bun run lint-flows && bun run audit-nodes",
     "deploy:dev": "wrangler deploy --env dev",
-    "deploy:prod": "wrangler deploy --env prod",
-    "check": "cd backend && bun run check",
-    "kill": "bun scripts/kill-port.mjs"
+    "deploy:prod": "wrangler deploy --env prod"
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.1",
-    "@sivo/flow-engine": "2.8.1",
+    "@sivo/flow-engine": "2.11.0",
     "hono": "^4.6.14",
     "jsonata": "^1.8.6"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "wrangler": "^4.37.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

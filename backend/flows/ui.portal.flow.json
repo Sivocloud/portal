@@ -1,0 +1,38 @@
+[
+  {
+    "id": "in",
+    "type": "http-in",
+    "method": "GET",
+    "path": "/_ui/portal",
+    "wires": [["ov"]]
+  },
+  {
+    "id": "ov",
+    "type": "portal-overview",
+    "wires": [["r"]]
+  },
+  {
+    "id": "r",
+    "type": "ui.html-response",
+    "wires": [[]],
+    "view": "portal",
+    "layout": "app",
+    "statusCode": "200",
+    "dataPath": "payload.data"
+  },
+  {
+    "id": "catch",
+    "type": "catch",
+    "wires": [["errR"]],
+    "scope": ""
+  },
+  {
+    "id": "errR",
+    "type": "ui.html-response",
+    "wires": [[]],
+    "view": "error",
+    "layout": "app",
+    "statusCode": "500",
+    "dataPath": "payload"
+  }
+]

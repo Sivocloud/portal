@@ -1,93 +1,76 @@
 # SIVOCLOUD Portal
 
-Portal admin de SIVOCLOUD — `apps.sivocloud.dev/portal/*`.
+Portal de SIVOCLOUD — `portal.sivocloud.dev/`. **Server-rendered con
+HTMX** (sin SPA). Ver [AGENTS.md](./AGENTS.md) para la guía arquitectónica.
 
 **La prueba viva del patrón zero-secrets**: este worker **NO** tiene
-`TURSO_CONTROL_PLANE_*`, `CONTROL_PLANE_ENCRYPTION_KEY`, ni DB bindings
-de plataforma. Solo `env.AUTH` Service Binding RPC contra `_auth`.
+`TURSO_CONTROL_PLANE_*`, `CONTROL_PLANE_ENCRYPTION_KEY`, `SESSION_SECRET`
+ni DB bindings de plataforma. Solo `env.AUTH` (Service Binding RPC) contra
+`_auth`.
 
-Toda metadata de tenant/apps viene via RPC:
+Toda la metadata de tenant/apps viene vía RPC:
 - `env.AUTH.getTenantInfo({cookie})` → tenant metadata
 - `env.AUTH.getInstalledApps({cookie})` → lista apps instaladas
-- `env.AUTH.verifySession(cookie)` → auth claims (via middleware Hono)
+- `env.AUTH.verifySession(cookie)` → auth claims (middleware Hono)
 
 ## Stack
 
-- **Backend**: Hono 4 + `@sivo/flow-engine` 2.8.1 (CF Worker)
-- **Frontend**: Svelte 5 + Vite 7 + Tailwind v4 + DaisyUI 5
+- **Backend**: Hono 4 + `@sivo/flow-engine` 2.11.0 (CF Worker)
+- **UI**: HTML server-rendered + HTMX + CSS vanilla + islands JS
 - **Auth**: cookie `__Secure-sivocloud_session` (cross-subdomain)
-- **Deploy**: UN SOLO Cloudflare Worker per-app. URL: `apps.sivocloud.dev/portal/*`
+- **Deploy**: UN SOLO Cloudflare Worker. URL: `portal.sivocloud.dev/`
 
 ## Quick start
 
 ```bash
-# deps
 bun install
-bun --cwd frontend install
+cp .env.example .env.development
 
-# dev (auto-injects /api proxy to backend)
-bun run dev   # levanta _auth (:3031) + backend (:3032 — opcional) + portal (:3034 o 5177)
+bun run dev:dev    # [auth] :3031 (reusa si ya está) + [be] :3034
+# UI: http://localhost:3034/
 ```
 
-> Para dev local **necesitas** `_auth` corriendo en `:3031` (login +
-> pick-tenant) — el portal NO emite cookies, solo las consume via RPC
-> al broker. Sin `_auth`, login falla.
+> Necesitás `_auth` en `:3031` (el portal NO emite cookies, solo las consume
+> vía RPC). `bun run dev:dev` lo levanta si no está.
 
-## Cómo agregar un endpoint
+## Estructura (backend-only)
 
-### Endpoint que consume RPC del broker
+```
+backend/
+├── app.js            ← Hono (CORS + auth + páginas → /api/_ui/* + forward)
+├── server.js         ← dev: Bun.serve :3034 (raíz)
+├── worker-entry.js   ← prod: CF Worker
+├── fe.mjs            ← flow-engine (flows: portal-me, portal-apps, ui.portal)
+├── flows/            ← *.flow.json
+├── nodes/            ← portal-overview, portal-me/apps, html-response
+└── src/
+    ├── lib/          ← env.mjs
+    ├── middleware/   ← attach-auth-claims.js
+    └── ui/           ← pages, templates, islands, styles, static
+```
 
-1. **Custom node** en `backend/nodes/auth/portal-X.js`:
-   ```js
-   export default {
-     type: 'portal-x',
-     inputs: 1, outputs: 2,
-     defaults: {},
-     async execute(node, msg, ctx) {
-       const cookieValue = readSessionCookie(ctx?.env?.cookieHeader || '')
-       const result = await ctx.env.AUTH.someRpc({ cookie: cookieValue, ...args })
-       return [{ ...msg, payload: { data: result } }, null]
-     },
-   }
-   ```
+## Agregar una sección
 
-2. **Flow** en `backend/flows/portal-x.flow.json`:
-   ```json
-   [
-     { "id": "in", "type": "http-in", "method": "GET", "path": "/portal/x", "wires": [["do"]] },
-     { "id": "do", "type": "portal-x", "wires": [["resp"], ["err401"]] },
-     { "id": "resp", "type": "http-response", "statusCode": "200", "wires": [[]] },
-     { "id": "err401", "type": "http-response", "statusCode": "401", "wires": [[]] }
-   ]
-   ```
-
-3. **Registrar** en `backend/nodes/index.js` + `backend/fe.mjs` FLOWS map.
+1. Vista en `backend/src/ui/templates/<section>.js` + registro en `index.js`.
+2. Flow `ui.<section>.flow.json` (ver AGENTS.md).
+3. Registrar el flow en `fe.mjs` + link en `NAV` (`pages.js`).
 
 ## Deploy
 
 ```bash
-bun run build:worker      # esbuild backend → dist/worker.mjs
-cd frontend && bun run build  # Svelte → frontend/dist/
+bun run gen:htmx && bun run gen:islands   # si tocaste vendor/ o islands/
 wrangler deploy --env prod
 ```
 
-## Zero secrets (Phase 4)
+## Zero secrets
 
-`wrangler secret list --env prod` retorna `[]` (vacío). El portal solo
-tiene `env.AUTH` (Service Binding) y `env.ASSETS` (CF Assets).
+`wrangler secret list --env prod` retorna `[]` (vacío). El portal solo tiene
+`env.AUTH` (Service Binding).
 
-Si este worker fuera comprometido, el atacante NO podría:
-- Listar todos los tenants / owners.
-- Leer credenciales cifradas de OTROS tenants.
-- Modificar planes / activar apps.
-- Mintear sesiones propias (no tiene `SESSION_SECRET`).
+Si este worker fuera comprometido, el atacante NO podría listar todos los
+tenants/owners, leer credenciales de otros tenants, modificar planes, ni
+mintear sesiones. Solo vería la metadata del tenant actual (un cookie).
 
-Solo podría ver la metadata del tenant actual (un único cookie de sesión).
+## Pendiente
 
-## Phase 4 status (2026-09-14)
-
-- ✅ `/portal/` (SPA shell)
-- ✅ `/portal/api/health` → 200, zeroSecrets:true
-- ✅ `/portal/api/portal/me` → tenant metadata
-- ✅ `/portal/api/portal/apps` → installed apps
-- ⏳ Owner/admin UI (CRUD tenants, billing, audit log) — fuera de Phase 4
+- Secciones **Facturación** y **Configuración** (hoy placeholders en el nav).
