@@ -36,6 +36,7 @@
     const map = {
       pos: (sub) => `https://apps.sivocloud.dev/sivopos/${sub}`,
       b2b: (sub) => `https://apps.sivocloud.dev/b2b/${sub}`,
+      connect: (sub) => `https://apps.sivocloud.dev/connect/${sub}`,
     };
     const fn = map[app.appSlug];
     return fn ? fn(me?.tenant?.subdomain || me?.tenant?.id) : '#';

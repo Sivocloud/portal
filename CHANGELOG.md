@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2.3] — 2026-09-15 — fix: link de la app connect en el portal
+
+La tarjeta de `connect` aparecía en el portal (porque `tenant_apps` la marca
+`active`) pero su botón no navegaba: `launchUrl()` cae a `'#'` para los slugs
+que no están en el mapa hardcodeado. sivo-connect ya se sirve con tenant en el
+path (`/connect/<tenant>`), consistente con `/sivopos/<tenant>` y
+`/b2b/<tenant>`.
+
+### Fixed
+- `frontend/src/App.svelte`: `connect: (sub) => \`https://apps.sivocloud.dev/connect/${sub}\``
+  en el mapa `appSlug → URL` de `launchUrl()`.
+
 ## [v0.2.2] — 2026-09-14 — fix: bundle SPA resuelve el runtime client de svelte
 
 Tras v0.2.1 el SPA cargaba pero crasheaba en el browser:
