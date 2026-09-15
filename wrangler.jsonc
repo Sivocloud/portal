@@ -27,6 +27,10 @@
 
   "routes": [
     {
+      "pattern": "apps.sivocloud.dev/portal",
+      "zone_name": "sivocloud.dev"
+    },
+    {
       "pattern": "apps.sivocloud.dev/portal/*",
       "zone_name": "sivocloud.dev"
     }

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2.4] — 2026-09-15 — fix: `/portal` sin barra final caía al dispatcher
+
+`apps.sivocloud.dev/portal` (sin la barra) no matcheaba la route
+`/portal/*`, así que caía al catch-all del `tenants-dispatcher`
+(`apps.sivocloud.dev/*`) → "ruta inválida" (un path de 1 solo segmento
+no lo puede parsear). El worker ya soportaba `/portal` vía
+`stripAppPrefix`; solo faltaba la route.
+
+### Fixed
+- `wrangler.jsonc`: ruta exacta `apps.sivocloud.dev/portal` además de
+  `/portal/*` (mismo patrón que se usó en sivo-connect).
+
 ## [v0.2.3] — 2026-09-15 — fix: link de la app connect en el portal
 
 La tarjeta de `connect` aparecía en el portal (porque `tenant_apps` la marca
