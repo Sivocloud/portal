@@ -11,7 +11,8 @@
 import { escapeHtml, icon } from './fragments.js'
 
 const NAV = [
-  { key: 'portal', href: '/', label: 'Apps', icon: 'apps' },
+  { key: 'portal', href: '/', label: 'Inicio', icon: 'apps' },
+  { key: 'apps', href: '/aplicaciones', label: 'Aplicaciones', icon: 'store' },
   { key: 'billing', href: '/facturacion', label: 'Facturación', icon: 'billing' },
 ]
 

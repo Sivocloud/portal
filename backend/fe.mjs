@@ -28,6 +28,8 @@ import uiPortalFlow       from './flows/ui.portal.flow.json' with { type: 'json'
 import uiBillingFlow        from './flows/ui.billing.flow.json' with { type: 'json' }
 import uiBillingSupportFlow from './flows/ui.billing-support.flow.json' with { type: 'json' }
 import uiBillingAutoRenewFlow from './flows/ui.billing-autorenew.flow.json' with { type: 'json' }
+import uiAppsFlow           from './flows/ui.apps.flow.json' with { type: 'json' }
+import uiAppsToggleFlow     from './flows/ui.apps-toggle.flow.json' with { type: 'json' }
 
 import { extraNodes } from './nodes/index.js'
 
@@ -39,6 +41,8 @@ const FLOWS = {
   'ui.billing':        uiBillingFlow,
   'ui.billing-support':   uiBillingSupportFlow,
   'ui.billing-autorenew': uiBillingAutoRenewFlow,
+  'ui.apps':              uiAppsFlow,
+  'ui.apps-toggle':       uiAppsToggleFlow,
 }
 
 const __dirname = (() => {

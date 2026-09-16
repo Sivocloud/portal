@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.5.0] — 2026-09-15 — Aplicaciones: catálogo y desinstalar/reinstalar
+
+Nueva sección **Aplicaciones**: el dueño ve sus apps, el catálogo con precios
+y puede desinstalar/reinstalar dentro de la ventana de retención. Todo vía RPC
+`env.AUTH` (el portal sigue zero-secrets).
+
+### Added
+
+- **Vista `apps.js`**: "Tus apps" (estado, precio, cuenta regresiva de purga y
+  acciones) + "Catálogo" (apps con precio/franquicia y estado).
+- **Nodos `portal-apps-catalog`** (agrega `listCatalog` + `getInstalledApps`) y
+  **`portal-app-toggle`** (`uninstallApp` / `reactivateApp`).
+- **Flows `ui.apps`** (`GET /_ui/aplicaciones`) y **`ui.apps-toggle`**
+  (`POST /_ui/aplicaciones/toggle`, swap `outerHTML` de `#apps-body` + toast OOB).
+- Mocks de los 3 RPC en `fake-auth-binding.mjs` (endpoint dev
+  `/api/auth/broker/apps`).
+
+### Changed
+
+- **Nav**: el dashboard pasa a "Inicio"; se agrega "Aplicaciones"
+  (`/aplicaciones`) con icono propio.
+- **CSS**: `.btn.danger`, `.notice.warn` para el aviso de purga.
+
+### Notes
+
+- **Instalar** una app nueva no está disponible: implica provisionar la DB del
+  tenant (hoy manual/out-of-band). El catálogo es informativo.
+
 ## [v0.4.0] — 2026-09-15 — Facturación: suscripción, consumo y facturas
 
 Activa la sección **Facturación** (antes placeholder en el nav): el dueño de

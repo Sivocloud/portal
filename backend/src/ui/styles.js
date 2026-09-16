@@ -156,6 +156,13 @@ code, .mono { font-family: var(--mono); font-size: .92em; }
 .pill-group button + button { border-left: 1px solid var(--border); }
 .pill-group button.active { background: var(--primary); color: #fff; }
 
+/* ── Aplicaciones ─────────────────────────────────────── */
+.btn.danger { border-color: var(--danger); color: var(--danger); }
+.btn.danger:hover { background: var(--danger-soft); }
+.notice { border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; border: 1px solid var(--border); background: var(--surface-2); }
+.notice.warn { background: var(--warning-soft); border-color: var(--warning); color: var(--warning); }
+.notice strong { display: block; margin-bottom: 2px; }
+
 /* ── Toast ────────────────────────────────────────────── */
 #toast { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 80; }
 .toast { padding: 11px 15px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 560; color: #fff; box-shadow: var(--shadow); animation: slidein .16s ease-out; max-width: 380px; }

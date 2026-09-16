@@ -104,6 +104,17 @@ export function createFakeAuthBinding({ baseUrl } = {}) {
     setAutoRenew({ cookie, enabled } = {}) {
       return callBilling(url, 'setAutoRenew', { cookie, enabled })
     },
+
+    // ─── Apps (mismo dispatch /api/auth/broker/apps por action) ────────────
+    listCatalog({ cookie } = {}) {
+      return callApps(url, 'listCatalog', { cookie })
+    },
+    uninstallApp({ cookie, appSlug } = {}) {
+      return callApps(url, 'uninstallApp', { cookie, appSlug })
+    },
+    reactivateApp({ cookie, appSlug } = {}) {
+      return callApps(url, 'reactivateApp', { cookie, appSlug })
+    },
   }
 }
 
@@ -113,6 +124,24 @@ async function callBilling(url, action, payload) {
   }
   try {
     const res = await fetch(`${url}/api/auth/broker/billing`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action, ...payload }),
+    })
+    if (!res.ok) return { valid: false }
+    const json = await res.json()
+    return json.data || { valid: false }
+  } catch (err) {
+    return { valid: false, reason: `rpc_error: ${err.message}` }
+  }
+}
+
+async function callApps(url, action, payload) {
+  if (!payload.cookie || typeof payload.cookie !== 'string') {
+    return { valid: false }
+  }
+  try {
+    const res = await fetch(`${url}/api/auth/broker/apps`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action, ...payload }),

@@ -91,7 +91,7 @@ ${apps.map((app) => {
 </details>`
 
   return {
-    title: 'Apps',
+    title: 'Inicio',
     active: 'portal',
     layout: 'app',
     html: hero + body + info,
