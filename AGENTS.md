@@ -8,7 +8,7 @@
 
 **Server-rendered con HTMX** sobre **Hono + flow-engine 2.11.0**, con
 **islands JS** hidratadas. **SIN `/frontend`**: toda la UI vive en
-`backend/src/ui/`. Patrón idéntico a `apps/sivo-pos-htmx`.
+`backend/src/ui/`. Patrón idéntico a `apps/sivo-pos`.
 
 **CERO secrets de plataforma**: el worker NO tiene `TURSO_CONTROL_PLANE_*`,
 `CONTROL_PLANE_ENCRYPTION_KEY`, `SESSION_SECRET` ni DB bindings. Toda la

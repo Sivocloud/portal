@@ -82,7 +82,7 @@ rutas) y los RPCs de billing en `_auth` (`bun test` 44/44).
 ## [v0.3.0] — 2026-09-15 — Server-rendered (HTMX) + subdominio `portal.sivocloud.dev`
 
 El portal migra de **SPA Svelte + Vite** a **server-rendered con HTMX**
-(mismo patrón que `apps/sivo-pos-htmx`). Toda la UI vive en `backend/src/ui/`;
+(mismo patrón que `apps/sivo-pos`). Toda la UI vive en `backend/src/ui/`;
 se elimina `frontend/` y el binding CF `assets`. La metadata sigue llegando
 por Service Binding RPC (`env.AUTH`) — zero-secrets intacto.
 
