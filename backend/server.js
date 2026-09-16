@@ -4,7 +4,7 @@
  * Server-rendered (HTMX): el backend sirve la UI (páginas + fragmentos),
  * los assets estáticos y la API JSON. No hay vite ni proceso de frontend.
  *
- * En prod el portal corre en `portal.sivocloud.dev/` (subdominio propio);
+ * En prod el portal corre en `panel.sivocloud.dev/` (subdominio propio);
  * dev replica esa raíz en `http://localhost:3034/` — mismo path (sin prefijo),
  * así el código de las vistas no cambia entre entornos.
  */

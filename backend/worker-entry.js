@@ -6,9 +6,9 @@
  *   2. Delegar TODO a la app Hono (páginas HTML, fragmentos HTMX, assets
  *      estáticos y API JSON). NO hay SPA, NO hay binding ASSETS.
  *
- * El worker corre en su propio subdominio `portal.sivocloud.dev/*` (route en
+ * El worker corre en su propio subdominio `panel.sivocloud.dev/*` (route en
  * wrangler.jsonc), así que los paths llegan limpios (sin prefijo de app):
- * dev (`localhost:3034/`) y prod (`portal.sivocloud.dev/`) comparten el mismo
+ * dev (`localhost:3034/`) y prod (`panel.sivocloud.dev/`) comparten el mismo
  * shape de URL.
  *
  * Phase 4 (2026-09-14): ZERO secrets de plataforma. El worker NO firma
@@ -16,10 +16,10 @@
  * hace _auth via Service Binding RPC `env.AUTH`.
  *
  * URL canónica:
- *   https://portal.sivocloud.dev/                  (dashboard)
- *   https://portal.sivocloud.dev/static/app.css
- *   https://portal.sivocloud.dev/api/portal/me     (GET)
- *   https://portal.sivocloud.dev/api/portal/apps   (GET)
+ *   https://panel.sivocloud.dev/                  (dashboard)
+ *   https://panel.sivocloud.dev/static/app.css
+ *   https://panel.sivocloud.dev/api/portal/me     (GET)
+ *   https://panel.sivocloud.dev/api/portal/apps   (GET)
  */
 
 import { app } from './app.js'

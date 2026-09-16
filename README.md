@@ -1,6 +1,6 @@
 # SIVOCLOUD Portal
 
-Portal de SIVOCLOUD — `portal.sivocloud.dev/`. **Server-rendered con
+Portal de SIVOCLOUD — `panel.sivocloud.dev/`. **Server-rendered con
 HTMX** (sin SPA). Ver [AGENTS.md](./AGENTS.md) para la guía arquitectónica.
 
 **La prueba viva del patrón zero-secrets**: este worker **NO** tiene
@@ -18,7 +18,7 @@ Toda la metadata de tenant/apps viene vía RPC:
 - **Backend**: Hono 4 + `@sivo/flow-engine` 2.11.0 (CF Worker)
 - **UI**: HTML server-rendered + HTMX + CSS vanilla + islands JS
 - **Auth**: cookie `__Secure-sivocloud_session` (cross-subdomain)
-- **Deploy**: UN SOLO Cloudflare Worker. URL: `portal.sivocloud.dev/`
+- **Deploy**: UN SOLO Cloudflare Worker. URL: `panel.sivocloud.dev/`
 
 ## Quick start
 

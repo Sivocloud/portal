@@ -1,4 +1,4 @@
-# _portal — Portal de SIVOCLOUD (`portal.sivocloud.dev`)
+# _portal — Portal de SIVOCLOUD (`panel.sivocloud.dev`)
 
 > Resumen ejecutivo para IAs (o devs). Con SOLO leerlo ya saben qué es esto,
 > cómo corre y qué es real vs pendiente. Si algo contradice al código, el
@@ -73,7 +73,7 @@ bun run dev:dev    # [auth] :3031 (reusa si ya está) + [be] :3034
 - **Dev**: `bun server.js` (Bun) sirve TODO en la raíz (`localhost:3034/`). El
   binding `env.AUTH` lo suple `fake-auth-binding.mjs` (HTTP a `_auth` :3031) →
   paridad local↔prod.
-- **Prod**: `wrangler deploy --env prod` → `portal.sivocloud.dev/` (subdominio
+- **Prod**: `wrangler deploy --env prod` → `panel.sivocloud.dev/` (subdominio
   propio, igual que `auth.sivocloud.dev`; el path de dev y prod es el mismo).
 
 ## Arquitectura (reglas)

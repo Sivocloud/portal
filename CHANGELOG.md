@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.5.1] — 2026-09-16 — `portal.sivocloud.dev` → `panel.sivocloud.dev`
+
+### Changed
+
+- **URL canónica renombrada a `panel.sivocloud.dev/`** (route del Worker +
+  `APP_DOMAIN` de prod). Motivo: `portal.sivocloud.dev` colisionaba con el
+  wildcard `*.sivocloud.dev/*` que reclama `_sivostudio` (launcher de SivoStudio
+  + preview URLs del sandbox de `@cloudflare/sandbox`). Como `_portal` nunca se
+  había deployado, ese subdominio caía al wildcard y servía la SPA de SivoStudio
+  en lugar del portal.
+- El rename fue **gratis**: sin deploy previo no había bookmarks, usuarios,
+  cookies en ese origin ni links externos. `_auth` actualizó su
+  `DEFAULT_PORTAL_URL` en el mismo pase.
+- Docs (`AGENTS.md`, `README.md`, `package.json`) actualizadas. Las entradas
+  históricas de este CHANGELOG conservan la URL vieja (son registro).
+
 ## [v0.5.0] — 2026-09-15 — Aplicaciones: catálogo y desinstalar/reinstalar
 
 Nueva sección **Aplicaciones**: el dueño ve sus apps, el catálogo con precios

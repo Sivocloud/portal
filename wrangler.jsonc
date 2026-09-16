@@ -5,10 +5,15 @@
 // `env.AUTH` contra _auth. Toda metadata de tenant/apps llega via
 // RPC `getTenantInfo` / `getInstalledApps` / `getTenantCredentials`.
 //
-// URL canónica: `portal.sivocloud.dev/` — subdominio propio, igual que
+// URL canónica: `panel.sivocloud.dev/` — subdominio propio, igual que
 // `auth.sivocloud.dev`. El portal es un servicio de plataforma (no una app
 // por-tenant), y resuelve el tenant desde el cookie, no desde el path
 // (sivo-pos usa `/sivopos/<tenant>/`).
+//
+// 2026-09-16: era `portal.sivocloud.dev`. Se renombró a `panel` porque
+// `portal` cae/se confunde con el wildcard `*.sivocloud.dev/*` de
+// `_sivostudio` (launcher de SivoStudio + preview URLs del sandbox). El
+// rename fue gratis: `_portal` nunca se había deployado.
 {
   "name": "sivocloud-portal",
   "main": "backend/worker-entry.js",
@@ -25,7 +30,7 @@
 
   "routes": [
     {
-      "pattern": "portal.sivocloud.dev/*",
+      "pattern": "panel.sivocloud.dev/*",
       "zone_name": "sivocloud.dev"
     }
   ],
@@ -44,7 +49,7 @@
     },
     "prod": {
       "vars": {
-        "APP_DOMAIN":   "portal.sivocloud.dev",
+        "APP_DOMAIN":   "panel.sivocloud.dev",
         "NODE_ENV":     "production"
       },
       "services": [

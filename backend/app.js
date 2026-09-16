@@ -2,7 +2,7 @@
  * backend/app.js — Hono app para _portal (server-rendered, HTMX).
  *
  * El portal es un servicio de plataforma en su PROPIO subdominio
- * (`portal.sivocloud.dev/*` en prod, `localhost:3034/*` en dev), así que los
+ * (`panel.sivocloud.dev/*` en prod, `localhost:3034/*` en dev), así que los
  * paths llegan limpios (sin prefijo de app). Hono sirve:
  *   - Páginas HTML y fragmentos HTMX en la raíz → se reescriben a
  *     `/api/_ui/*` y se delegan a flow-engine (flow `ui.portal` + nodo
