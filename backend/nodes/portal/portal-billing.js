@@ -65,6 +65,7 @@ export default {
           subscription: subscription.subscription,
           items: subscription.items || [],
           estimate: subscription.estimate || {},
+          wallet: subscription.wallet || null,
           usage: {
             period: usage?.period || {},
             lines: usage?.lines || [],

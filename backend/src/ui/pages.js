@@ -115,6 +115,7 @@ export function shell({
     const BASE = '${base}'
     const ISLAND_ROOTS = {
       'theme': document.getElementById('theme-toggle'),
+      'paddle': document.body,
     }
     async function loadIsland(name) {
       const root = ISLAND_ROOTS[name]
@@ -127,6 +128,7 @@ export function shell({
       }
     }
     loadIsland('theme')
+    loadIsland('paddle')
   </script>
 </body>
 </html>`

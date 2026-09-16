@@ -15,6 +15,8 @@ import portalSetSupport    from './portal/portal-set-support.js'
 import portalSetAutoRenew  from './portal/portal-set-autorenew.js'
 import portalAppsCatalog   from './portal/portal-apps-catalog.js'
 import portalAppToggle     from './portal/portal-app-toggle.js'
+import portalPaddleCheckout from './portal/portal-paddle-checkout.js'
+import portalPaddlePortal   from './portal/portal-paddle-portal.js'
 import htmlResponse        from './html/html-response.js'
 
 export const extraNodes = [
@@ -26,5 +28,7 @@ export const extraNodes = [
   portalSetAutoRenew,
   portalAppsCatalog,
   portalAppToggle,
+  portalPaddleCheckout,
+  portalPaddlePortal,
   htmlResponse,
 ]

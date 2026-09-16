@@ -1,0 +1,8 @@
+[
+  { "id": "in", "type": "http-in", "method": "POST", "path": "/_ui/facturacion/portal", "wires": [["ps"]] },
+  { "id": "ps", "type": "portal-paddle-portal", "name": "Sesión Customer Portal Paddle (RPC)", "wires": [["resp"]] },
+  { "id": "resp", "type": "http-response", "name": "Responder 200 (JSON)", "statusCode": "200", "wires": [[]] },
+  { "id": "catch", "type": "catch", "scope": "", "wires": [["err500Handler"]] },
+  { "id": "err500Handler", "type": "subflow", "flowRef": "error-handler-500", "outputPath": "payload", "wires": [["err500"]] },
+  { "id": "err500", "type": "http-response", "statusCode": "500", "wires": [[]] }
+]

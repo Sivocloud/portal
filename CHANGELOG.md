@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.6.0] — 2026-09-16 — Facturación self-serve con Paddle
+
+El dueño del tenant puede pagar desde el portal: suscribirse con Paddle,
+comprar saldo prepago (pagos únicos) y gestionar su suscripción. Todo vía RPC
+`env.AUTH` — el portal sigue zero-secrets.
+
+### Added
+
+- **Isla `paddle.island.js`**: carga Paddle.js (`v2`), inicializa con el
+  client-side token y abre el **overlay** con el `transactionId` que crea el
+  server (delegación a nivel documento → sobrevive swaps de HTMX).
+- **Vista Facturación**: controles Paddle en la tarjeta de suscripción
+  ("Suscribirme con Paddle" / "Gestionar suscripción") y nueva tarjeta
+  **"Saldo prepago"** con packs ($20/$50/$100).
+- **Nodos** `portal-paddle-checkout` (checkout de suscripción o wallet) y
+  `portal-paddle-portal` (sesión del Customer Portal); flows
+  `ui.billing-checkout` (`POST /_ui/facturacion/checkout`) y
+  `ui.billing-portal` (`POST /_ui/facturacion/portal`).
+- `portal-billing` pasa `wallet` y expone el saldo.
+- Mocks de `getPaddleClientConfig`/`createCheckout`/`createWalletTopup`/
+  `createPortalSession` en `fake-auth-binding.mjs`.
+
+### Changed
+
+- `pages.js`: bootstrapper registra la isla `paddle`.
+
 ## [v0.5.1] — 2026-09-16 — `portal.sivocloud.dev` → `panel.sivocloud.dev`
 
 ### Changed

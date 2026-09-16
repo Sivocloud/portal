@@ -111,6 +111,50 @@ function autoRenewControls(data) {
   </div>`
 }
 
+function paddleControls(data) {
+  if (!data.canManage) return ''
+  const sub = data.subscription || {}
+  if (sub.paddleSubscriptionId) {
+    const status = sub.paddleStatus || 'active'
+    return `<div class="row between mt">
+    <div>
+      <div class="small muted mb">Pago con Paddle</div>
+      <div>${statusBadge(status)} <span class="small muted">${escapeHtml(sub.paddleSubscriptionId)}</span></div>
+    </div>
+    <div><button class="btn" data-paddle-action="portal">Gestionar suscripción</button></div>
+  </div>`
+  }
+  return `<div class="row between mt">
+    <div class="small muted">Activá el cobro automático de la suscripción con Paddle.</div>
+    <div><button class="btn primary" data-paddle-action="checkout" data-kind="subscription">Suscribirme con Paddle</button></div>
+  </div>`
+}
+
+function walletSection(data, currency) {
+  if (!data.canManage) return ''
+  const packs = [
+    { cents: 2000, label: '$20' },
+    { cents: 5000, label: '$50' },
+    { cents: 10000, label: '$100' },
+  ]
+  const btns = packs.map((p) => `<button class="btn"
+      data-paddle-action="checkout"
+      data-kind="wallet"
+      data-amount-cents="${p.cents}"
+      data-currency="${escapeHtml(currency)}"
+      data-description="Saldo prepago SIVOCLOUD">${p.label}</button>`).join('\n')
+  const balance = data.wallet && data.wallet.balanceCents != null
+    ? fmtMoney(data.wallet.balanceCents, currency)
+    : '—'
+  return `<div class="card">
+  <div class="card-head"><span>Saldo prepago</span><span class="badge info">${escapeHtml(balance)}</span></div>
+  <div class="card-body">
+    <p class="small muted mb">Cargá saldo para pagar cargos y servicios puntuales (consultoría, configuración).</p>
+    <div class="pill-group">${btns}</div>
+  </div>
+</div>`
+}
+
 function usageSection(data, currency) {
   const lines = (data.usage && data.usage.lines) || []
   if (lines.length === 0) {
@@ -190,9 +234,12 @@ ${kpis(data)}
     ${itemsTable(data.items, currency)}
     ${data.canManage ? supportControls(data, currency) : ''}
     ${data.canManage ? autoRenewControls(data) : ''}
+    ${paddleControls(data)}
     ${manageNote}
   </div>
 </div>
+
+${walletSection(data, currency)}
 
 <div class="card">
   <div class="card-head"><span>Consumo del período</span><span class="muted small">${escapeHtml(fmtPeriod((data.usage && data.usage.period || {}).start, (data.usage && data.usage.period || {}).end))}</span></div>

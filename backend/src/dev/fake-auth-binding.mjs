@@ -105,6 +105,20 @@ export function createFakeAuthBinding({ baseUrl } = {}) {
       return callBilling(url, 'setAutoRenew', { cookie, enabled })
     },
 
+    // ─── Billing Paddle (checkout / wallet / portal) ───────────────────────
+    getPaddleClientConfig({ cookie } = {}) {
+      return callBilling(url, 'getPaddleClientConfig', { cookie })
+    },
+    createCheckout({ cookie, subscriptionId, priceIds } = {}) {
+      return callBilling(url, 'createCheckout', { cookie, subscriptionId, priceIds })
+    },
+    createWalletTopup({ cookie, amountCents, currency, description, serviceCode } = {}) {
+      return callBilling(url, 'createWalletTopup', { cookie, amountCents, currency, description, serviceCode })
+    },
+    createPortalSession({ cookie } = {}) {
+      return callBilling(url, 'createPortalSession', { cookie })
+    },
+
     // ─── Apps (mismo dispatch /api/auth/broker/apps por action) ────────────
     listCatalog({ cookie } = {}) {
       return callApps(url, 'listCatalog', { cookie })
