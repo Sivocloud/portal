@@ -2,7 +2,7 @@
  * styles.js — CSS autocontenido del portal (server-rendered + HTMX).
  *
  * Sin Tailwind ni DaisyUI: un único string servido como static en
- * `<base>/static/app.css`. Reusa los tokens base de sivo-pos-htmx.
+ * `<base>/static/app.css`. Reusa los tokens base de sivo-pos.
  */
 
 export const CSS = `

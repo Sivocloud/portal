@@ -1,7 +1,7 @@
 /**
  * backend/nodes/index.js — Registry de custom nodes de _portal.
  *
- * Patrón idéntico a apps/sivo-pos-htmx/backend/nodes/index.js.
+ * Patrón idéntico a apps/sivo-pos/backend/nodes/index.js.
  *   - `portal-me` / `portal-apps`: RPC nodes de la API JSON (backward-compat).
  *   - `portal-overview`: agregado del dashboard (RPC).
  *   - `ui.html-response`: render server-side (HTMX).
