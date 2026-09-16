@@ -1,6 +1,6 @@
 {
   "name": "sivocloud-portal",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "private": true,
   "description": "Portal de SIVOCLOUD — panel.sivocloud.dev. Server-rendered (HTMX) sobre flow-engine, con islands JS. CERO secrets de plataforma: solo env.AUTH Service Binding RPC.",
   "type": "module",

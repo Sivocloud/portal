@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.7.1] — 2026-09-16 — Log del dev server con el scheme real
+
+### Fixed
+
+- `scripts/dev-backend.mjs` imprimía `http://localhost:3034` aunque el portal
+  sirviera HTTPS (con `DEV_TLS_CERT` seteado). Ahora detecta el TLS del env
+  file y loguea el scheme correcto, para no mandar al browser al puerto
+  equivocado.
+
 ## [v0.7.0] — 2026-09-16 — Dev HTTPS (Paddle.js) y errores de checkout visibles
 
 Paddle.js exige un **secure context** para abrir el overlay. El portal dev

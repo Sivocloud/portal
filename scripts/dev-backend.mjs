@@ -17,7 +17,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -103,9 +103,14 @@ try {
   });
 } catch { /* no fatal */ }
 
+// El portal sirve HTTPS si el env file define DEV_TLS_CERT (Paddle.js exige
+// secure context). El log refleja el scheme real para no confundir.
+const beEnvText = existsSync(BACKEND_ENV_FILE) ? readFileSync(BACKEND_ENV_FILE, 'utf8') : '';
+const beScheme = /^DEV_TLS_CERT=.+$/m.test(beEnvText) ? 'https' : 'http';
+
 console.log(`[dev-backend] env : ${devEnv}`);
 console.log(`[dev-backend] auth: http://localhost:${AUTH_PORT}`);
-console.log(`[dev-backend] be  : http://localhost:${BE_PORT}`);
+console.log(`[dev-backend] be  : ${beScheme}://localhost:${BE_PORT}`);
 
 if (await checkPortOpen(AUTH_PORT)) {
   console.log(`[dev-backend] _auth ya está en :${AUTH_PORT} — reuso`);
@@ -127,4 +132,4 @@ be = spawnWithPrefix('be', 'bun', ['--env-file', BACKEND_ENV_FILE, 'server.js'],
 be.on('exit', (code) => { if (!shuttingDown) cleanup(code ?? 0); });
 if (!(await waitForPort(BE_PORT))) { console.error('[dev-backend] portal no levantó.'); cleanup(1); }
 console.log(`[dev-backend] portal listo en :${BE_PORT}`);
-console.log(`[dev-backend] abrí http://localhost:${BE_PORT}/`);
+console.log(`[dev-backend] abrí ${beScheme}://localhost:${BE_PORT}/`);
