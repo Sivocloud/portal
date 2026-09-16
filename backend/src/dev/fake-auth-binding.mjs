@@ -19,9 +19,11 @@
  * `isDev() && !c.env.AUTH`. En CF Workers `isDev()` es false.
  */
 
-const DEFAULT_BASE = process.env.AUTH_PORT
-  ? `http://localhost:${process.env.AUTH_PORT}`
-  : 'http://localhost:3031'
+// AUTH_BASE (schema-aware: https si _auth corre con DEV_TLS) gana sobre
+// AUTH_PORT; si no, el default http de siempre.
+const DEFAULT_BASE =
+  process.env.AUTH_BASE ||
+  (process.env.AUTH_PORT ? `http://localhost:${process.env.AUTH_PORT}` : 'http://localhost:3031')
 
 let cached = null
 

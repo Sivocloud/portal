@@ -73,6 +73,10 @@ bun run dev:dev    # [auth] :3031 (reusa si ya está) + [be] :3034
 - **Dev**: `bun server.js` (Bun) sirve TODO en la raíz (`localhost:3034/`). El
   binding `env.AUTH` lo suple `fake-auth-binding.mjs` (HTTP a `_auth` :3031) →
   paridad local↔prod.
+- **Dev HTTPS (opcional)**: con `DEV_TLS_CERT`/`DEV_TLS_KEY` (certs de
+  `mkcert`) el dev server sirve `https://localhost:3034/`. Hace falta para
+  Paddle.js (el checkout overlay exige secure context). Ver
+  `_controlplane/docs/paddle-integration.md`.
 - **Prod**: `wrangler deploy --env prod` → `panel.sivocloud.dev/` (subdominio
   propio, igual que `auth.sivocloud.dev`; el path de dev y prod es el mismo).
 

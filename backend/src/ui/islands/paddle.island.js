@@ -21,6 +21,33 @@ let bound = false
 let paddleInitPromise = null
 let paddleToken = null
 
+/**
+ * Paddle.js emite `checkout.error` (bloqueante) y `checkout.warning` (no
+ * bloqueante). Sin esto, un fallo queda invisible dentro del iframe
+ * ("Something went wrong"). En dev logueamos todo; al usuario le mostramos
+ * el `detail` del error. `checkout.completed` recarga para reflejar el estado.
+ */
+function handlePaddleEvent(ev) {
+  const name = ev && ev.name
+  if (!name) return
+  if (name === 'checkout.completed') {
+    console.info('[paddle]', name, ev)
+    toast('success', 'Pago completado. Actualizando…')
+    setTimeout(() => window.location.reload(), 1200)
+    return
+  }
+  if (name === 'checkout.error' || name === 'checkout.payment.error' || name === 'checkout.payment.failed') {
+    console.error('[paddle]', name, ev)
+    toast('error', (ev && ev.detail) || (ev && ev.code) || 'Paddle rechazó el checkout.')
+    return
+  }
+  if (name === 'checkout.warning') {
+    console.warn('[paddle]', name, ev)
+    return
+  }
+  console.info('[paddle]', name)
+}
+
 export function hydrate() {
   if (bound) return
   bound = true
@@ -65,7 +92,7 @@ async function ensurePaddle(clientConfig) {
       })
     }
     if (clientConfig.environment === 'sandbox') window.Paddle.Environment.set('sandbox')
-    window.Paddle.Initialize({ token: clientConfig.clientToken })
+    window.Paddle.Initialize({ token: clientConfig.clientToken, eventCallback: handlePaddleEvent })
     paddleToken = clientConfig.clientToken
   })()
 
@@ -89,11 +116,20 @@ async function openCheckout(el) {
     toast('error', checkoutError(res))
     return
   }
+  if (!res.transactionId) {
+    toast('error', 'No pudimos crear la transacción. Probá de nuevo.')
+    return
+  }
   await ensurePaddle(res.clientConfig)
-  window.Paddle.Checkout.open({
-    transactionId: res.transactionId,
-    settings: { displayMode: 'overlay' },
-  })
+  try {
+    window.Paddle.Checkout.open({
+      transactionId: res.transactionId,
+      settings: { displayMode: 'overlay' },
+    })
+  } catch (err) {
+    console.error('[paddle] Checkout.open falló', err)
+    toast('error', err && err.message ? err.message : 'No pudimos abrir el checkout.')
+  }
 }
 
 async function openPortal() {

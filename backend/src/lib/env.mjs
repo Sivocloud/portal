@@ -23,6 +23,10 @@ const KEYS = [
   // Override per-app (dev): cada app local corre en su propio puerto, así que
   // `APPS_BASE` (un solo host) no alcanza. JSON: { "<slug>": "<base>" }.
   'APP_BASES',
+  // TLS dev-only (Paddle.js exige secure context). Rutas a cert/key (mkcert).
+  // Vacías en prod (lo termina Cloudflare).
+  'DEV_TLS_CERT',
+  'DEV_TLS_KEY',
 ];
 
 function readEnv() {

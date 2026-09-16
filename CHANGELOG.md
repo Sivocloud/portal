@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.7.0] — 2026-09-16 — Dev HTTPS (Paddle.js) y errores de checkout visibles
+
+Paddle.js exige un **secure context** para abrir el overlay. El portal dev
+ahora puede servir HTTPS con certs de `mkcert` (sin warning del browser), y
+los errores del checkout dejan de ser invisibles.
+
+### Added
+
+- **TLS dev**: `backend/server.js` sirve HTTPS si `DEV_TLS_CERT` +
+  `DEV_TLS_KEY` están seteados (rutas relativas a `backend/`; en prod lo
+  termina Cloudflare). `env.mjs` whitelistea las dos vars y
+  `fake-auth-binding.mjs` respeta `AUTH_BASE` (schema-aware) para el hop a
+  `_auth`.
+- **Isla `paddle`**: maneja eventos de Paddle.js —
+  `checkout.error`/`payment.error`/`payment.failed` → toast con el `detail`
+  real + `console.error`; `checkout.warning` → `console.warn`;
+  `checkout.completed` → toast + reload. Antes un fallo quedaba encerrado en
+  el iframe ("Something went wrong"). `Checkout.open` va en try/catch y se
+  valida que exista `transactionId`.
+
+### Notes
+
+- El hop portal→`_auth` sigue en HTTP (server-to-server; no necesita TLS) y
+  `_auth/.env.dev` apunta `PORTAL_URL` al portal HTTPS.
+
 ## [v0.6.0] — 2026-09-16 — Facturación self-serve con Paddle
 
 El dueño del tenant puede pagar desde el portal: suscribirse con Paddle,
