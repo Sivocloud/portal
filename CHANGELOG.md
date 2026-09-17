@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.10.0] — 2026-09-17 — Eliminación de `backend/`: todo a `src/server/` (espejo sivo-pos)
+
+Reorganización estructural interna: se elimina el directorio `backend/` de la
+raíz y el backend in-process pasa a `src/server/`, exactamente igual que
+`apps/sivo-pos`. No cambia ningún comportamiento ni ruta pública: los 9 flows,
+los 8 nodos y la instancia de flow-engine son los mismos, en nueva ubicación.
+
+### Changed
+
+- **`backend/*` → `src/server/*`**: `fe.mjs` → `engine.mjs` (instance),
+  `src/lib/env.mjs` → `lib/env.mjs`, `middleware/identity.mjs` → `identity.mjs`,
+  `dev/fake-auth-binding.mjs` → `dev/fake-auth-binding.mjs`, `flows/` y `nodes/`
+  se mueven idénticos.
+- **`src/lib/server/*` → `src/server/host/*`**: `flows.ts` (`runFlow` + `feEnv`)
+  y `page-data.ts` (`loadPage`); `src/lib/page-feeds.ts` → `src/server/lib/`
+  (la tabla de rutas vive con el server).
+- **Scripts**: `lint-flows`/`audit-nodes` (`package.json`) apuntan a
+  `src/server/{flows,nodes}`; `check-architecture.mjs` (reglas 1–5 y los
+  "ghosts" de la capa vieja) valida `src/server/**`; `dev-backend.mjs` pierde el
+  `BACKEND_DIR` muerto y su doc obsoleto de Hono/HTMX.
+- **Imports de consumidores**: middleware, Shell.astro, las 3 páginas,
+  `actions/index.ts` y los endpoints checkout/portal re-apuntan a `server/*`.
+- **Docs**: AGENTS.md y README.md reflejan el nuevo árbol; `.gitignore`
+  actualiza la ruta del NODES.md generado.
+
+Tests: lint-flows (9 flows) + audit-nodes (8 nodos) + check:arch (8/8) +
+astro check OK. Smoke: TODO VERDE.
+
 ## [v0.9.0] — 2026-09-17 — Alineación con sivo-pos (glob, page-feeds, Actions, PRG-cookie)
 
 Alineación arquitectónica con `apps/sivo-pos`: misma estructura de layers, mismo

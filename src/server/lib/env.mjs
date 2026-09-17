@@ -1,5 +1,5 @@
 /**
- * backend/src/lib/env.mjs — Abstracción de variables de entorno.
+ * src/server/lib/env.mjs — Abstracción de variables de entorno.
  *
  * En CF Workers / workerd: lee globalThis.SIVO_ENV (lo publica el middleware
  * de Astro, `src/middleware.ts`). En Node (tests/scripts): process.env.

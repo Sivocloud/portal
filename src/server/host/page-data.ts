@@ -1,5 +1,5 @@
 /**
- * src/lib/server/page-data.ts — el dataset de una pantalla, en un solo lugar.
+ * src/server/host/page-data.ts — el dataset de una pantalla, en un solo lugar.
  *
  * La página declara SU RUTA (`/facturacion`) y los filtros de la URL; de ahí
  * sale todo: qué flow la alimenta y por qué path se le pide (`page-feeds.ts`,
@@ -10,7 +10,7 @@
  * del browser funcionan sin JS.
  */
 import { runFlow } from './flows'
-import { feedFor } from '../page-feeds'
+import { feedFor } from '../lib/page-feeds'
 
 export interface PageData {
   status: number

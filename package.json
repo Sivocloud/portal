@@ -1,6 +1,6 @@
 {
   "name": "sivocloud-portal",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "description": "Portal de SIVOCLOUD — panel.sivocloud.dev. UI server-rendered con Astro sobre flow-engine (islas vanilla). CERO secrets de plataforma: solo env.AUTH Service Binding RPC.",
   "type": "module",
@@ -12,8 +12,8 @@
     "astro:preview": "astro preview",
     "check:astro": "astro check",
     "check:arch": "bun scripts/check-architecture.mjs",
-    "lint-flows": "bun node_modules/@sivo/flow-engine/bin/lint-flows.js --dir backend/flows --nodes-entry ./backend/nodes/index.js --nodes-export extraNodes",
-    "audit-nodes": "bun node_modules/@sivo/flow-engine/bin/lint-node-defaults.js --dir backend/nodes --flat --strict-jsdoc --allow-package @cfworker/json-schema",
+    "lint-flows": "bun node_modules/@sivo/flow-engine/bin/lint-flows.js --dir src/server/flows --nodes-entry ./src/server/nodes/index.js --nodes-export extraNodes",
+    "audit-nodes": "bun node_modules/@sivo/flow-engine/bin/lint-node-defaults.js --dir src/server/nodes --flat --strict-jsdoc --allow-package @cfworker/json-schema",
     "check": "bun run lint-flows && bun run audit-nodes && bun run check:arch && bun run check:astro",
     "smoke": "bun scripts/smoke.mjs",
     "deploy:dev": "wrangler deploy --env dev",

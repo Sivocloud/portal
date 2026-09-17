@@ -1,5 +1,5 @@
 /**
- * backend/src/middleware/identity.mjs — Resolución de identidad de _portal,
+ * src/server/identity.mjs — Resolución de identidad de _portal,
  * AGNÓSTICA del host.
  *
  * Vivía embebida en `attach-auth-claims.js` (middleware de Hono). Con la UI en

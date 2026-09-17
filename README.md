@@ -41,25 +41,33 @@ bun run dev:dev    # [auth] :3031 (reusa si ya está) + astro dev :3034
 ## Estructura
 
 ```
-src/                 ← la UI: middleware, layouts, pages, components, islands
-backend/
-├── fe.mjs           ← flow-engine (flows portal.*)
-├── flows/           ← *.flow.json (reads y writes)
-├── nodes/portal/    ← nodos RPC (env.AUTH)
-└── src/             ← env.mjs, identity.mjs, fake-auth-binding.mjs
-scripts/             ← dev-backend.mjs, smoke.mjs
+src/
+├── middleware.ts      ← único perímetro: auth + PRG de Actions + caché
+├── actions/index.ts   ← writes (Astro Actions)
+├── layouts/ pages/ components/ islands/ styles/   ← la UI (Astro)
+├── lib/               ← nav, format, flash (Astro-land)
+└── server/            ← FLOW-ENGINE RUNTIME (in-process)
+    ├── engine.mjs     ← instancia de flow-engine (flows portal.*)
+    ├── identity.mjs   ← resolución de identidad (sin Hono)
+    ├── lib/           ← env.mjs, page-feeds.ts (tabla de rutas)
+    ├── host/          ← flows.ts (runFlow), page-data.ts (loadPage)
+    ├── dev/           ← fake-auth-binding.mjs (mock de env.AUTH)
+    ├── flows/         ← *.flow.json (reads y writes)
+    └── nodes/portal/  ← nodos RPC (env.AUTH)
+scripts/               ← dev-backend.mjs, check-architecture.mjs, smoke.mjs
 ```
 
 ## Agregar una sección
 
 Ver AGENTS.md §"Agregar una sección": flow read JSON + página `.astro` con
-`runFlow`, endpoint POST + PRG para los writes y entrada en `src/lib/nav.ts`.
+`loadPage(Astro)`, campo en `src/server/lib/page-feeds.ts` y una Action en
+`src/actions/index.ts` para los writes.
 
 ## Validar
 
 ```bash
-bun run check     # lint-flows + audit-nodes + astro check
-bun run smoke     # Chrome headless contra un build (astro preview): CSP, SSR, isla
+bun run check     # lint-flows + audit-nodes + check:arch + astro check
+bun run smoke     # Chrome headless contra un build (astro preview): CSP, SSR, isla, Actions
 ```
 
 ## Deploy

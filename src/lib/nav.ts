@@ -5,7 +5,7 @@
  * `active` que marca cada página (viene del layout, no se deduce del path).
  * `NAV_SOON` son secciones futuras (placeholder).
  */
-import { navItems } from './page-feeds'
+import { navItems } from '../server/lib/page-feeds'
 
 export interface NavItem {
   key: string

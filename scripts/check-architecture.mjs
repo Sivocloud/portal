@@ -42,19 +42,19 @@ function read(file) {
 const fmtPath = (p) => `/api${p}`
 
 // ── 1. El engine no conoce a Astro ───────────────────────────────────────────
-// `backend/**` es el backend (flows + runtime + nodos): tiene que poder correr
-// sin Astro. El puente es `src/lib/server/*` (lo que consumen páginas y
-// Actions) — nunca al revés.
+// `src/server/**` es el backend (flows + runtime + identidad): tiene que poder
+// correr sin Astro. El puente son `src/server/host/*` (lo que consumen páginas
+// y Actions) — nunca al revés.
 {
-  const name = 'backend → astro/UI (prohibido)'
+  const name = 'src/server → astro/UI (prohibido)'
   const FORBID = /from\s+['"](astro:|(\.\.\/)+src\/(pages|layouts|components|actions|styles|lib|middleware))/
   let violations = 0
-  for (const file of walkFiles(join(PROJECT_ROOT, 'backend'))) {
+  for (const file of walkFiles(join(PROJECT_ROOT, 'src/server'))) {
     if (!/\.(js|mjs|ts)$/.test(file)) continue
     read(file).split('\n').forEach((line, i) => {
       if (/^\s*(\/\/|\*|\/\*)/.test(line)) return
       if (FORBID.test(line)) {
-        report(name, file, `línea ${i + 1}`, 'El engine no importa de Astro ni de la UI (el puente es src/lib/server/*).')
+        report(name, file, `línea ${i + 1}`, 'El engine no importa de Astro ni de la UI (el puente es src/server/host/*).')
         violations++
       }
     })
@@ -70,12 +70,12 @@ const fmtPath = (p) => `/api${p}`
   let violations = 0
   const ghosts = [
     'src/ui',
-    'backend/app.js',
-    'backend/server.js',
-    'backend/worker-entry.js',
-    'backend/src/ui',
-    'backend/nodes/html',
-    'backend/src/middleware/attach-auth-claims.js',
+    'src/server/app.js',
+    'src/server/server.js',
+    'src/server/worker-entry.js',
+    'src/server/ui',
+    'src/server/nodes/html',
+    'src/server/attach-auth-claims.js',
     'scripts/build.mjs',
     'scripts/gen-htmx-inline.mjs',
     'scripts/gen-islands-inline.mjs',
@@ -86,7 +86,7 @@ const fmtPath = (p) => `/api${p}`
       violations++
     }
   }
-  for (const f of walkFiles(join(PROJECT_ROOT, 'backend/flows'))) {
+  for (const f of walkFiles(join(PROJECT_ROOT, 'src/server/flows'))) {
     if (!/\.flow\.json$/.test(f)) continue
     const base = f.split('/').pop()
     if (base.startsWith('ui.')) {
@@ -108,7 +108,7 @@ const fmtPath = (p) => `/api${p}`
 // `import.meta.glob` el filename ES la clave; esta regla impide volver atrás.
 {
   const name = 'registro de flows (import.meta.glob)'
-  const file = join(PROJECT_ROOT, 'backend/fe.mjs')
+  const file = join(PROJECT_ROOT, 'src/server/engine.mjs')
   const src = read(file) ?? ''
   let violations = 0
   if (!src.includes("import.meta.glob('./flows/*.flow.json'")) {
@@ -128,8 +128,8 @@ const fmtPath = (p) => `/api${p}`
 // existe (404 en el render, sin error de build) o el dataset de OTRA pantalla.
 {
   const name = 'page-feeds → path del flow'
-  const feedsFile = join(PROJECT_ROOT, 'src/lib/page-feeds.ts')
-  const flowsDir = join(PROJECT_ROOT, 'backend/flows')
+  const feedsFile = join(PROJECT_ROOT, 'src/server/lib/page-feeds.ts')
+  const flowsDir = join(PROJECT_ROOT, 'src/server/flows')
   let violations = 0
   const rows = (read(feedsFile) ?? '')
     .split('\n')
@@ -171,10 +171,10 @@ const fmtPath = (p) => `/api${p}`
     report(name, join(PROJECT_ROOT, 'src'), 'middleware', `Se esperaba exactamente 1 (src/middleware.ts), hay ${middlewares.length}.`)
     violations++
   }
-  const dups = walkFiles(join(PROJECT_ROOT, 'backend')).filter((f) => /middleware/.test(f) && f.endsWith('identity.mjs') === false)
+  const dups = walkFiles(join(PROJECT_ROOT, 'src/server')).filter((f) => /middleware/.test(f) && f.endsWith('identity.mjs') === false)
   for (const f of dups) {
     if (/attach-auth-claims|app\.js/.test(f)) continue
-    report(name, f, 'perímetro duplicado', 'La identidad vive en `src/middleware.ts` (+ backend/src/middleware/identity.mjs).')
+    report(name, f, 'perímetro duplicado', 'La identidad vive en `src/middleware.ts` (+ src/server/identity.mjs).')
     violations++
   }
   if (violations === 0) console.log(`✓ ${name}`)

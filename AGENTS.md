@@ -34,19 +34,40 @@ _portal/
 ├── wrangler.preview.jsonc             ← DEV (flat: el plugin de CF no resuelve `env` anidado)
 │
 ├── public/theme.js                    ← init del tema, parser-blocking (sin flash)
-├── src/                               ← LA UI (Astro)
+├── src/                               ← LA APP (Astro UI + flow-engine in-process)
 │   ├── middleware.ts                  ← perímetro: SIVO_ENV + auth + 302/401 + fake dev
 │   │                                     + PRG de Actions (cookie de 1 uso) + caché de página
 │   ├── actions/index.ts               ← los writes (Astro Actions: Zod + PRG)
 │   ├── layouts/Shell.astro            ← sidebar + topbar + toast
 │   ├── lib/
-│   │   ├── page-feeds.ts              ← TABLA DE RUTAS: pantalla ↔ flow ↔ nav (fuente única)
 │   │   ├── nav.ts                     ← NAV / NAV_SOON (derivados de page-feeds)
 │   │   ├── format.ts                  ← escape/fechas/moneda/badge/iconos
-│   │   ├── flash.ts                   ← resultado de Action → toast del shell
-│   │   └── server/
-│   │       ├── flows.ts               ← `runFlow` (in-process) + `feEnv`
-│   │       └── page-data.ts           ← `loadPage(Astro)`: dataset de la pantalla actual
+│   │   └── flash.ts                   ← resultado de Action → toast del shell
+│   ├── server/                        ← FLOW-ENGINE RUNTIME ONLY (in-process)
+│   │   ├── engine.mjs                 ← única instancia de flow-engine
+│   │   │                                 (los flows se registran con import.meta.glob:
+│   │   │                                  el filename ES la clave)
+│   │   ├── identity.mjs               ← resolución de identidad (sin Hono)
+│   │   ├── lib/
+│   │   │   ├── env.mjs                ← env proxy + bases env-aware (globalThis.SIVO_ENV)
+│   │   │   └── page-feeds.ts          ← TABLA DE RUTAS: pantalla ↔ flow ↔ nav (fuente única)
+│   │   ├── host/
+│   │   │   ├── flows.ts               ← `runFlow` (in-process) + `feEnv`
+│   │   │   └── page-data.ts           ← `loadPage(Astro)`: dataset de la pantalla actual
+│   │   ├── dev/fake-auth-binding.mjs  ← dev-only: mock de `env.AUTH` (HTTP a :3031)
+│   │   ├── flows/
+│   │   │   ├── error-handler-500.flow.json
+│   │   │   ├── portal.overview.flow.json          ← GET  /portal/overview
+│   │   │   ├── portal.apps.flow.json              ← GET  /portal/apps
+│   │   │   ├── portal.billing.flow.json           ← GET  /portal/billing
+│   │   │   ├── portal.app.toggle.flow.json        ← POST /portal/apps/toggle
+│   │   │   ├── portal.support.set.flow.json       ← POST /portal/billing/support
+│   │   │   ├── portal.autorenew.set.flow.json     ← POST /portal/billing/autorenew
+│   │   │   ├── portal.billing-checkout.flow.json  ← POST /portal/billing/checkout
+│   │   │   └── portal.billing-portal.flow.json    ← POST /portal/billing/portal
+│   │   └── nodes/
+│   │       ├── index.js               ← registry (extraNodes)
+│   │       └── portal/                ← los 8 nodos RPC (reads/writes/Paddle)
 │   ├── components/                    ← Badge.astro, AppCard.astro
 │   ├── islands/paddle.ts              ← ÚNICA isla cliente (Paddle)
 │   ├── styles/app.css
@@ -56,27 +77,6 @@ _portal/
 │       ├── facturacion.astro          → Billing  (flow portal.billing)
 │       └── api/health.ts, api/facturacion/{checkout,portal}.ts  → JSON
 │
-├── backend/                           ← FLOW-ENGINE RUNTIME ONLY
-│   ├── fe.mjs                         ← única instancia de flow-engine
-│   │                                     (los flows se registran con import.meta.glob:
-│   │                                      el filename ES la clave)
-│   ├── flows/
-│   │   ├── error-handler-500.flow.json
-│   │   ├── portal.overview.flow.json          ← GET  /portal/overview
-│   │   ├── portal.apps.flow.json              ← GET  /portal/apps
-│   │   ├── portal.billing.flow.json           ← GET  /portal/billing
-│   │   ├── portal.app.toggle.flow.json        ← POST /portal/apps/toggle
-│   │   ├── portal.support.set.flow.json       ← POST /portal/billing/support
-│   │   ├── portal.autorenew.set.flow.json     ← POST /portal/billing/autorenew
-│   │   ├── portal.billing-checkout.flow.json  ← POST /portal/billing/checkout
-│   │   └── portal.billing-portal.flow.json    ← POST /portal/billing/portal
-│   ├── nodes/
-│   │   ├── index.js                   ← registry (extraNodes)
-│   │   └── portal/                    ← los 8 nodos RPC (reads/writes/Paddle)
-│   └── src/
-│       ├── lib/env.mjs                ← env proxy (globalThis.SIVO_ENV)
-│       ├── middleware/identity.mjs    ← resolución de identidad (sin Hono)
-│       └── dev/fake-auth-binding.mjs  ← dev-only: mock de `env.AUTH` (HTTP a :3031)
 └── scripts/
     ├── dev-backend.mjs                ← dev: _auth (:3031) + astro dev (:3034)
     ├── check-architecture.mjs         ← reglas duras del repo (8 reglas)
@@ -108,27 +108,27 @@ bun run dev:dev    # [auth] :3031 (reusa si ya está) + astro dev :3034
    `http-response` (JSON). El negocio es **metadata vía RPC** (`getTenantInfo`,
    `getInstalledApps`, `getSubscription`, `createCheckout`, …) — NO hay DB.
 2. **NO hay Hono.** El perímetro (publicar `SIVO_ENV`, resolver identidad,
-   302 al login / 401 JSON) vive en `src/middleware.ts`, compartiendo
-   `backend/src/middleware/identity.mjs`.
-3. **Los flows son INTERNOS.** No se exponen por HTTP: `runFlow('/api/<flow>')`
-   los llama in-process usando su `http-in` como dirección (el motor los monta
-   bajo `/api`). El browser solo habla con páginas y endpoints de Astro.
-4. **Todo llega del server.** La página corre su read flow **durante el
-   render**; no hay fetch del cliente para contenido. Los writes son POST al
-   server que redirigen (PRG) y la página re-consulta el estado real.
-5. **Islas**: sólo `paddle.ts` (SDK de Paddle en el browser) y el toggle de
-   tema. Sin framework: TS vanilla, bundleado por Astro.
-6. **CSS vanilla** en `src/styles/app.css` (clases `.btn`, `.card`, `.badge`,
-   `.kpi`, …). Sin Tailwind ni utilidades.
-7. **Una sola tabla de rutas** (`src/lib/page-feeds.ts`): path del flow, nav y
-   paths públicos salen de ahí. La página no repite el path — `loadPage(Astro)`
-   lo deriva de la URL.
-8. **Los writes son Astro Actions** (`src/actions/index.ts`): Zod + `runFlow` +
-   PRG. La Action no reimplementa negocio, sólo llama el flow.
+    302 al login / 401 JSON) vive en `src/middleware.ts`, compartiendo
+    `src/server/identity.mjs`.
+ 3. **Los flows son INTERNOS.** No se exponen por HTTP: `runFlow('/api/<flow>')`
+    los llama in-process usando su `http-in` como dirección (el motor los monta
+    bajo `/api`). El browser solo habla con páginas y endpoints de Astro.
+ 4. **Todo llega del server.** La página corre su read flow **durante el
+    render**; no hay fetch del cliente para contenido. Los writes son POST al
+    server que redirigen (PRG) y la página re-consulta el estado real.
+ 5. **Islas**: sólo `paddle.ts` (SDK de Paddle en el browser) y el toggle de
+    tema. Sin framework: TS vanilla, bundleado por Astro.
+ 6. **CSS vanilla** en `src/styles/app.css` (clases `.btn`, `.card`, `.badge`,
+    `.kpi`, …). Sin Tailwind ni utilidades.
+ 7. **Una sola tabla de rutas** (`src/server/lib/page-feeds.ts`): path del flow,
+    nav y paths públicos salen de ahí. La página no repite el path —
+    `loadPage(Astro)` lo deriva de la URL.
+ 8. **Los writes son Astro Actions** (`src/actions/index.ts`): Zod + `runFlow` +
+    PRG. La Action no reimplementa negocio, sólo llama el flow.
 
 ## Agregar una sección
 
-1. **Flow read** `backend/flows/portal.<sección>.flow.json`:
+1. **Flow read** `src/server/flows/portal.<sección>.flow.json`:
    ```json
    [
      { "id": "in", "type": "http-in", "method": "GET", "path": "/portal/<sección>", "wires": [["n"]] },
@@ -142,9 +142,10 @@ bun run dev:dev    # [auth] :3031 (reusa si ya está) + astro dev :3034
    ```
    Los nodos de lectura devuelven `{ data: {...} }` → el `transform` lo
    desenvuelve para que el body sea la data pelada.
-   **No hay que registrarlo**: `fe.mjs` usa `import.meta.glob`, el filename ES
-   la clave del flow.
-2. **Fila en `src/lib/page-feeds.ts`** (fuente única): `pages`, `flow`, `path`
+   **No hay que registrarlo**: `engine.mjs` usa `import.meta.glob`, el filename
+   ES la clave del flow.
+2. **Fila en `src/server/lib/page-feeds.ts`** (fuente única): `pages`, `flow`,
+   `path`
    (el path público del flow, `/api/...`) y `nav`. El check de arquitectura
    verifica que `path` coincida con el `http-in` del flow y que `flow` exista.
 3. **Página** `src/pages/<sección>.astro`:
@@ -200,13 +201,13 @@ que no vuelve, registro por glob, `page-feeds` ↔ `http-in`, un solo perímetro
 
 ## Nodos/RPC
 
-Todos en `backend/nodes/portal/`, todos RPC vía `env.AUTH`:
+Todos en `src/server/nodes/portal/`, todos RPC vía `env.AUTH`:
 `portal-overview`, `portal-apps-catalog`, `portal-billing` (reads);
 `portal-app-toggle`, `portal-set-support`, `portal-set-autorenew` (writes);
 `portal-paddle-checkout`, `portal-paddle-portal` (Paddle).
 
 El cookie de sesión llega al flow vía `ctx.env.cookieHeader` (lo setea `feEnv`
-en `src/lib/server/flows.ts`).
+en `src/server/host/flows.ts`).
 
 ## Links env-aware
 

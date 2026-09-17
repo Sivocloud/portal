@@ -16,7 +16,7 @@
  */
 import { defineAction, ActionError, type ActionAPIContext } from 'astro:actions'
 import { z } from 'astro/zod'
-import { runFlow } from '../lib/server/flows'
+import { runFlow } from '../server/host/flows'
 
 /** Toast que devuelven los write nodes (`payload.data.toast`). */
 export interface Toast {

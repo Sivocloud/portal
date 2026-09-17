@@ -1,5 +1,5 @@
 /**
- * src/lib/server/flows.ts — Puente in-process entre Astro y flow-engine.
+ * src/server/host/flows.ts — Puente in-process entre Astro y flow-engine.
  *
  * Las páginas/endpoints NO tienen lógica de negocio: piden datos llamando al
  * flow que corresponde. La llamada es **in-process** (`fe.handleWorker`):
@@ -10,8 +10,8 @@
  * `ctx.env.cookieHeader`) + el Service Binding `AUTH` (o su fake en dev).
  */
 import { env } from 'cloudflare:workers'
-import { fe } from '../../../backend/fe.mjs'
-import { getEnv, getAuthBase, getAppsBase } from '../../../backend/src/lib/env.mjs'
+import { fe } from '../engine.mjs'
+import { getEnv, getAuthBase, getAppsBase } from '../lib/env.mjs'
 
 export function feEnv(locals: any, { cookieHeader = '', extra = {} as any } = {}) {
   const id = locals?.identity

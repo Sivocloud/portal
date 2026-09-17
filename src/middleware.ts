@@ -24,9 +24,9 @@
 import { defineMiddleware } from 'astro:middleware'
 import { getActionContext } from 'astro:actions'
 import { env } from 'cloudflare:workers'
-import { resolveIdentity, isPublicPath } from '../backend/src/middleware/identity.mjs'
-import { getEnv } from '../backend/src/lib/env.mjs'
-import { PUBLIC_PATHS } from './lib/page-feeds'
+import { resolveIdentity, isPublicPath } from './server/identity.mjs'
+import { getEnv } from './server/lib/env.mjs'
+import { PUBLIC_PATHS } from './server/lib/page-feeds'
 
 /** Cookie de un solo uso con el resultado de la última Action (flash del PRG). */
 const FLASH_COOKIE = 'sivo_portal_action'
@@ -73,7 +73,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // `astro preview`/`wrangler dev` (ahí `import.meta.env.DEV` es false).
   // En prod el binding existe → nunca se monta.
   if (!bindings.AUTH && (import.meta.env.DEV || bindings.DEV_AUTH_FAKE === '1') && !globalThis.__SIVO_DEV_AUTH__) {
-    const { createFakeAuthBinding } = await import('../backend/src/dev/fake-auth-binding.mjs')
+    const { createFakeAuthBinding } = await import('./server/dev/fake-auth-binding.mjs')
     const envVars = getEnv()
     const baseUrl = envVars.AUTH_BASE || `http://localhost:${envVars.AUTH_PORT || 3031}`
     globalThis.__SIVO_DEV_AUTH__ = createFakeAuthBinding({ baseUrl })

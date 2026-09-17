@@ -1,15 +1,15 @@
 /**
- * backend/fe.mjs — ÚNICA instancia de flow-engine para _portal.
+ * src/server/engine.mjs — ÚNICA instancia de flow-engine para _portal.
  *
- * Diferencias con _auth/fe.mjs y apps/sivo-pos/fe.mjs:
+ * Mismo rol que `apps/sivo-pos/src/server/engine.js`:
  *   - CERO CP/DB bindings. Solo necesita core nodes + los custom nodes del
  *     portal (todos RPC vía `env.AUTH`).
- *   - Sin connection: "tenant" (no hay tenant DB).
+ *   - Sin "tenant" DB: los flows piden metadata vía RPC a `_auth`.
  *   - Cookie NO se verifica acá — el perímetro (Astro middleware) ya lo hizo.
  *     flow-engine solo lee claims de `ctx.env`.
  *
  * Los flows son INTERNOS: no hay Hono que los exponga. Las páginas/endpoints
- * de Astro los llaman in-process (`runFlow` en `src/lib/server/flows.ts`),
+ * de Astro los llaman in-process (`runFlow` en `src/server/host/flows.ts`),
  * que usa el `http-in` de cada flow como dirección.
  *
  * Phase 4 (2026-09-14): zero secrets. Cero D1. Cero Turso.
@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url'
 import { createFlowEngineApp } from '@sivo/flow-engine/app'
 import { coreNodes } from '@sivo/flow-engine/nodes'
 
-import { getEnv } from './src/lib/env.mjs'
+import { getEnv } from './lib/env.mjs'
 import { extraNodes } from './nodes/index.js'
 
 // ── Registro de flows ────────────────────────────────────────────────────

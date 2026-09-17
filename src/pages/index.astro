@@ -8,8 +8,8 @@
  */
 import Shell from '../layouts/Shell.astro'
 import AppCard from '../components/AppCard.astro'
-import { loadPage } from '../lib/server/page-data'
-import { getAppsBase, getAppBases } from '../../backend/src/lib/env.mjs'
+import { loadPage } from '../server/host/page-data'
+import { getAppsBase, getAppBases } from '../server/lib/env.mjs'
 
 const id = Astro.locals.identity
 const { data } = await loadPage(Astro)

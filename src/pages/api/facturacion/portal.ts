@@ -3,7 +3,7 @@
  * Devuelve `{ ok, url }`; la isla `paddle.ts` redirige.
  */
 import type { APIRoute } from 'astro'
-import { runFlow } from '../../../lib/server/flows'
+import { runFlow } from '../../../server/host/flows'
 
 export const prerender = false
 

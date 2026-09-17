@@ -4,7 +4,7 @@
  * a `_auth`/`_controlplane`; el portal no tiene secrets de Paddle.
  */
 import type { APIRoute } from 'astro'
-import { runFlow } from '../../../lib/server/flows'
+import { runFlow } from '../../../server/host/flows'
 
 export const prerender = false
 

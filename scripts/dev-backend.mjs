@@ -1,15 +1,13 @@
 #!/usr/bin/env bun
 /**
- * dev-backend.mjs — Levanta el backend server-rendered (HTMX) del portal.
+ * dev-backend.mjs — Levanta el backend del portal en dev.
  *
  * Procesos:
  *   [auth]  _auth en :3031   → login + RPC (getTenantInfo, getInstalledApps).
  *                              Si ya está corriendo, se reusa.
- *   [be]    portal en :3034  → Hono + flow-engine. Sirve TODO: páginas HTML
- *                              (flow ui.portal), fragmentos HTMX, assets
- *                              estáticos (/ui/static/*) y la API JSON.
- *
- * NO hay vite ni frontend separado: la UI vive en el backend.
+ *   [be]    portal en :3034  → `astro dev` (workerd vía @astrojs/cloudflare).
+ *                              El Service Binding AUTH no existe localmente:
+ *                              el middleware monta el fake HTTP contra _auth.
  *
  * Uso:
  *   bun run dev:dev
@@ -26,7 +24,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = path.join(__dirname, '..');
 const REPO_ROOT = path.join(APP_ROOT, '..');
 const AUTH_DIR = path.join(REPO_ROOT, '_auth');
-const BACKEND_DIR = path.join(APP_ROOT, 'backend');
 
 const devEnv = process.env.DEV_ENV || 'development';
 const AUTH_PORT = Number(process.env.AUTH_PORT || 3031);
