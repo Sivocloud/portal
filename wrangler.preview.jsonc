@@ -1,0 +1,28 @@
+// wrangler.preview.jsonc — config que usa el adapter de Astro en DEV.
+//
+// El `wrangler.jsonc` de la raíz tiene `env.dev`/`env.prod` (deploy). El
+// plugin de Cloudflare para Vite no resuelve bien las bindings cuando el
+// config está anidado por env, así que dev usa este archivo FLAT.
+// En cutover/prod, `wrangler deploy --env prod` usa el de la raíz.
+{
+  "name": "sivocloud-portal-preview",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "no_handle_cross_request_promise_resolution"],
+
+  "observability": { "enabled": true },
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+
+  "vars": {
+    "APP_DOMAIN": "localhost",
+    "NODE_ENV": "development",
+    "DEV_AUTH_FAKE": "1",
+    "AUTH_BASE": "http://localhost:3031",
+    "APPS_BASE": "http://localhost:3032",
+    "APP_BASES": "{\"pos\":\"http://localhost:3032\",\"b2b\":\"http://localhost:5173\"}"
+  }
+}

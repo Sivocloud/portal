@@ -1,30 +1,32 @@
 {
   "name": "sivocloud-portal",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "private": true,
-  "description": "Portal de SIVOCLOUD — panel.sivocloud.dev. Server-rendered (HTMX) sobre flow-engine, con islands JS. CERO secrets de plataforma: solo env.AUTH Service Binding RPC.",
+  "description": "Portal de SIVOCLOUD — panel.sivocloud.dev. UI server-rendered con Astro sobre flow-engine (islas vanilla). CERO secrets de plataforma: solo env.AUTH Service Binding RPC.",
   "type": "module",
-  "main": "backend/server.js",
   "scripts": {
     "dev": "bun scripts/dev-backend.mjs",
     "dev:dev": "DEV_ENV=development bun scripts/dev-backend.mjs",
-    "start": "bun --env-file=.env.development backend/server.js",
-    "gen:htmx": "bun scripts/gen-htmx-inline.mjs",
-    "gen:islands": "bun scripts/gen-islands-inline.mjs",
-    "build:worker": "bun scripts/build.mjs",
+    "astro:dev": "astro dev",
+    "astro:build": "astro build",
+    "astro:preview": "astro preview",
+    "check:astro": "astro check",
     "lint-flows": "bun node_modules/@sivo/flow-engine/bin/lint-flows.js --dir backend/flows --nodes-entry ./backend/nodes/index.js --nodes-export extraNodes",
     "audit-nodes": "bun node_modules/@sivo/flow-engine/bin/lint-node-defaults.js --dir backend/nodes --flat --strict-jsdoc --allow-package @cfworker/json-schema",
-    "check": "bun run lint-flows && bun run audit-nodes",
+    "check": "bun run lint-flows && bun run audit-nodes && bun run check:astro",
+    "smoke": "bun scripts/smoke.mjs",
     "deploy:dev": "wrangler deploy --env dev",
     "deploy:prod": "wrangler deploy --env prod"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^14.3.2",
     "@sivo/flow-engine": "2.11.0",
-    "hono": "^4.6.14",
-    "jsonata": "^1.8.6"
+    "astro": "^7.3.3"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2",
+    "@astrojs/check": "^0.9.10",
+    "puppeteer-core": "^23.0.0",
+    "typescript": "^6",
     "wrangler": "^4.37.0"
   },
   "engines": {

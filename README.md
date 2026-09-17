@@ -1,24 +1,28 @@
 # SIVOCLOUD Portal
 
-Portal de SIVOCLOUD — `panel.sivocloud.dev/`. **Server-rendered con
-HTMX** (sin SPA). Ver [AGENTS.md](./AGENTS.md) para la guía arquitectónica.
+Portal de SIVOCLOUD — `panel.sivocloud.dev/`. UI **server-rendered con
+Astro** (sin SPA, sin Hono): las páginas y endpoints piden su data a un flow
+de **flow-engine** llamado in-process. Ver [AGENTS.md](./AGENTS.md) para la
+guía arquitectónica.
 
 **La prueba viva del patrón zero-secrets**: este worker **NO** tiene
-`TURSO_CONTROL_PLANE_*`, `CONTROL_PLANE_ENCRYPTION_KEY`, `SESSION_SECRET`
-ni DB bindings de plataforma. Solo `env.AUTH` (Service Binding RPC) contra
-`_auth`.
+`TURSO_CONTROL_PLANE_*`, `CONTROL_PLANE_ENCRYPTION_KEY`, `SESSION_SECRET` ni DB
+bindings de plataforma. Solo `env.AUTH` (Service Binding RPC) contra `_auth`.
 
-Toda la metadata de tenant/apps viene vía RPC:
-- `env.AUTH.getTenantInfo({cookie})` → tenant metadata
-- `env.AUTH.getInstalledApps({cookie})` → lista apps instaladas
-- `env.AUTH.verifySession(cookie)` → auth claims (middleware Hono)
+Toda la metadata de tenant/apps/facturación viene vía RPC:
+- `env.AUTH.verifySession(cookie)` → auth claims (perímetro de Astro)
+- `env.AUTH.getTenantInfo({cookie})` / `getInstalledApps({cookie})`
+- `env.AUTH.getSubscription({cookie})` / `getUsageSummary` / `getInvoices`
+- `env.AUTH.createCheckout` / `createWalletTopup` / `createPortalSession`
 
 ## Stack
 
-- **Backend**: Hono 4 + `@sivo/flow-engine` 2.11.0 (CF Worker)
-- **UI**: HTML server-rendered + HTMX + CSS vanilla + islands JS
-- **Auth**: cookie `__Secure-sivocloud_session` (cross-subdomain)
-- **Deploy**: UN SOLO Cloudflare Worker. URL: `panel.sivocloud.dev/`
+- **UI**: Astro 7 (`output: 'server'`) + `@astrojs/cloudflare` — páginas
+  server-rendered, islas vanilla (solo Paddle + tema), CSS vanilla.
+- **Backend**: `@sivo/flow-engine` 2.11.0 (flows internos, llamados in-process).
+- **Auth**: cookie `__Secure-sivocloud_session` (cross-subdomain) verificada
+  por RPC contra `_auth`.
+- **Deploy**: UN SOLO Cloudflare Worker. URL: `panel.sivocloud.dev/`.
 
 ## Quick start
 
@@ -26,51 +30,43 @@ Toda la metadata de tenant/apps viene vía RPC:
 bun install
 cp .env.example .env.development
 
-bun run dev:dev    # [auth] :3031 (reusa si ya está) + [be] :3034
-# UI: http://localhost:3034/
+bun run dev:dev    # [auth] :3031 (reusa si ya está) + astro dev :3034
+# UI: https://localhost:3034/  (HTTPS con mkcert: Paddle lo exige)
 ```
 
 > Necesitás `_auth` en `:3031` (el portal NO emite cookies, solo las consume
-> vía RPC). `bun run dev:dev` lo levanta si no está.
+> vía RPC). `bun run dev:dev` lo levanta si no está. El modo dev habla con el
+> `_auth` local vía un fake binding (no hay Service Binding en workerd local).
 
-## Estructura (backend-only)
+## Estructura
 
 ```
+src/                 ← la UI: middleware, layouts, pages, components, islands
 backend/
-├── app.js            ← Hono (CORS + auth + páginas → /api/_ui/* + forward)
-├── server.js         ← dev: Bun.serve :3034 (raíz)
-├── worker-entry.js   ← prod: CF Worker
-├── fe.mjs            ← flow-engine (flows: portal-me, portal-apps, ui.portal)
-├── flows/            ← *.flow.json
-├── nodes/            ← portal-overview, portal-me/apps, html-response
-└── src/
-    ├── lib/          ← env.mjs
-    ├── middleware/   ← attach-auth-claims.js
-    └── ui/           ← pages, templates, islands, styles, static
+├── fe.mjs           ← flow-engine (flows portal.*)
+├── flows/           ← *.flow.json (reads y writes)
+├── nodes/portal/    ← nodos RPC (env.AUTH)
+└── src/             ← env.mjs, identity.mjs, fake-auth-binding.mjs
+scripts/             ← dev-backend.mjs, smoke.mjs
 ```
 
 ## Agregar una sección
 
-1. Vista en `backend/src/ui/templates/<section>.js` + registro en `index.js`.
-2. Flow `ui.<section>.flow.json` (ver AGENTS.md).
-3. Registrar el flow en `fe.mjs` + link en `NAV` (`pages.js`).
+Ver AGENTS.md §"Agregar una sección": flow read JSON + página `.astro` con
+`runFlow`, endpoint POST + PRG para los writes y entrada en `src/lib/nav.ts`.
+
+## Validar
+
+```bash
+bun run check     # lint-flows + audit-nodes + astro check
+bun run smoke     # Chrome headless contra un build (astro preview): CSP, SSR, isla
+```
 
 ## Deploy
 
 ```bash
-bun run gen:htmx && bun run gen:islands   # si tocaste vendor/ o islands/
 wrangler deploy --env prod
 ```
 
-## Zero secrets
-
-`wrangler secret list --env prod` retorna `[]` (vacío). El portal solo tiene
-`env.AUTH` (Service Binding).
-
-Si este worker fuera comprometido, el atacante NO podría listar todos los
-tenants/owners, leer credenciales de otros tenants, modificar planes, ni
-mintear sesiones. Solo vería la metadata del tenant actual (un cookie).
-
-## Pendiente
-
-- Secciones **Facturación** y **Configuración** (hoy placeholders en el nav).
+Deployar `_auth` antes que `_portal` (el binding `AUTH` apunta a
+`sivocloud-auth`).

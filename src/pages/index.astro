@@ -1,0 +1,82 @@
+---
+/**
+ * index.astro — Inicio: hero del tenant + apps instaladas.
+ *
+ * El dataset sale del read flow `portal.overview` (2 RPC a `_auth`
+ * combinados), llamado in-process durante el render. No hay fetch del cliente.
+ */
+import Shell from '../layouts/Shell.astro'
+import AppCard from '../components/AppCard.astro'
+import { runFlow } from '../lib/server/flows'
+import { getAppsBase, getAppBases } from '../../backend/src/lib/env.mjs'
+
+const id = Astro.locals.identity
+const cookieHeader = Astro.request.headers.get('cookie') || ''
+const { data } = await runFlow('/api/portal/overview', { locals: Astro.locals, cookieHeader })
+const d: any = data || {}
+
+const tenant = d.tenant || {}
+const apps: any[] = Array.isArray(d.apps) ? d.apps : []
+const tenantName = tenant.displayName || tenant.id || '—'
+const subdomain = tenant.subdomain || tenant.id || ''
+
+const APP_URL: Record<string, (base: string, sub: string) => string> = {
+  pos: (base, sub) => `${base}/sivopos/${sub}`,
+  b2b: (base, sub) => `${base}/b2b/${sub}`,
+  connect: (base, sub) => `${base}/connect/${sub}`,
+}
+const appsBase = getAppsBase()
+const appBases = getAppBases()
+function launchUrl(appSlug: string, sub: string): string | null {
+  const fn = APP_URL[appSlug]
+  if (!fn) return null
+  const base = (appBases && appBases[appSlug]) || appsBase
+  return fn(base, sub)
+}
+const appCount = apps.length
+---
+<Shell title="Inicio" active="portal" user={id?.user} role={id?.user?.role} tenantId={id?.claims?.tenant}>
+  {!d.valid
+    ? (
+      <div class="card"><div class="card-body">
+        <h2 class="mb">Sesión inválida o expirada</h2>
+        <p class="muted">Volvé a iniciar sesión para continuar.</p>
+      </div></div>
+    )
+    : (
+      <>
+        <div class="hero">
+          <h1>{tenantName}</h1>
+          <div class="sub">
+            {tenant.plan && <><span class="muted">plan</span> <span class="badge info">{tenant.plan}</span></>}
+            {tenant.defaultCurrency && <span class="muted">· {tenant.defaultCurrency}</span>}
+            {tenant.region && <span class="muted">· {tenant.region}</span>}
+          </div>
+          <div class="mt small muted">
+            Tu cuenta existe en {appCount} app{appCount === 1 ? '' : 's'} instalada{appCount === 1 ? '' : 's'}.
+          </div>
+        </div>
+
+        {appCount === 0
+          ? <div class="card"><div class="empty">No hay apps instaladas todavía.</div></div>
+          : (
+            <div class="app-grid">
+              {apps.map((app) => (
+                <AppCard app={app} url={launchUrl(app.appSlug, subdomain)} />
+              ))}
+            </div>
+          )}
+
+        <details class="info-box mt">
+          <summary>Info técnica (zero-secrets)</summary>
+          <p>Este worker NO tiene secrets de plataforma. Toda la metadata llega vía Service Binding RPC <code>env.AUTH</code>.</p>
+          <ul>
+            <li>Sin TURSO_CONTROL_PLANE_TOKEN</li>
+            <li>Sin CONTROL_PLANE_ENCRYPTION_KEY</li>
+            <li>Sin D1 binding de plataforma</li>
+            <li>Sin SESSION_SECRET (verificación vía RPC)</li>
+          </ul>
+        </details>
+      </>
+    )}
+</Shell>

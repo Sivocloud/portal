@@ -1,0 +1,23 @@
+---
+/** Tarjeta de app del portal (dashboard "Inicio"). */
+import Badge from './Badge.astro'
+import { ICONS, fmtDate } from '../lib/format'
+
+interface Props {
+  app: any
+  url?: string | null
+}
+
+const { app, url = null } = Astro.props
+const open = app.status === 'active' && url
+---
+<div class="app-card">
+  <h3>{app.appSlug || '—'} <Badge status={app.status} /></h3>
+  <div class="db">{app.dbName || ''}</div>
+  <div class="meta">meter: {app.meteringMode || '—'} · instalado: {fmtDate(app.installedAt)}</div>
+  <div class="actions">
+    {open
+      ? <a class="btn primary sm" href={url}><span class="ico" set:html={ICONS.external} /> Abrir</a>
+      : <button class="btn sm" disabled>No disponible</button>}
+  </div>
+</div>

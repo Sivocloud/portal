@@ -5,7 +5,7 @@
  *   - listCatalog({ cookie })       → catálogo de apps instalables + precio
  *   - getInstalledApps({ cookie })  → apps del tenant (status, ventana de purga)
  *
- * El cookie viaja en `ctx.env.cookieHeader` (lo setea app.js al forwardear).
+ * El cookie viaja en `ctx.env.cookieHeader` (lo setea `feEnv` en `src/lib/server/flows.ts`).
  *
  * @table none (no SQL — solo RPC `env.AUTH`)
  */

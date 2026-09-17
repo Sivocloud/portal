@@ -5,8 +5,9 @@
 .env.dev
 .env.prod
 .env.local
+.astro/
+.wrangler/
 node_modules/
-backend/node_modules/
 bun.lock
 dist/
 *.log

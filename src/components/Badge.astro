@@ -1,0 +1,12 @@
+---
+/** Badge de estado (clase + label desde `badgeFor`). */
+import { badgeFor } from '../lib/format'
+
+interface Props {
+  status?: string
+}
+
+const { status } = Astro.props
+const { cls, label } = badgeFor(status)
+---
+<span class={`badge ${cls}`.trim()}>{label}</span>

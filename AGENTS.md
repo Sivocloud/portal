@@ -6,13 +6,20 @@
 
 ## Stack en una frase
 
-**Server-rendered con HTMX** sobre **Hono + flow-engine 2.11.0**, con
-**islands JS** hidratadas. **SIN `/frontend`**: toda la UI vive en
-`backend/src/ui/`. Patrón idéntico a `apps/sivo-pos`.
+**UI server-rendered con Astro 7** (`output: 'server'` + `@astrojs/cloudflare`)
+sobre **Hono NO** / **flow-engine 2.11.0**. Las páginas y endpoints son de
+Astro; cada uno pide su data llamando un **flow in-process** (`runFlow` →
+`fe.handleWorker`). Los writes son POST + PRG (redirect con flash). La única
+isla JS es **Paddle** (checkout overlay + Customer Portal) + el toggle de tema.
 
-**CERO secrets de plataforma**: el worker NO tiene `TURSO_CONTROL_PLANE_*`,
-`CONTROL_PLANE_ENCRYPTION_KEY`, `SESSION_SECRET` ni DB bindings. Toda la
-metadata llega vía **Service Binding RPC `env.AUTH`** contra `_auth`.
+**CERO secrets de plataforma**: el worker NO tiene
+`TURSO_CONTROL_PLANE_*`, `CONTROL_PLANE_ENCRYPTION_KEY`, `SESSION_SECRET` ni DB
+bindings. Toda la metadata llega vía **Service Binding RPC `env.AUTH`** contra
+`_auth`.
+
+> Antes (≤ v0.7.2) la UI era **Hono + HTMX** con `ui.html-response` y templates
+> en JS. Eso se eliminó en v0.8.0 (ver `CHANGELOG`). El backend de flows/nodes
+> sobrevivió; sólo cambió quién lo llama.
 
 ## Estructura
 
@@ -21,43 +28,54 @@ _portal/
 ├── AGENTS.md                          ← este archivo
 ├── README.md
 ├── package.json                       ← bun + scripts (raíz)
-├── wrangler.jsonc                     ← deploy CF (main: backend/worker-entry.js)
+├── astro.config.mjs                   ← Astro: adapter CF, CSP, TLS dev
+├── tsconfig.json / src/env.d.ts
+├── wrangler.jsonc                     ← DEPLOY (main: adapter; env dev/prod)
+├── wrangler.preview.jsonc             ← DEV (flat: el plugin de CF no resuelve `env` anidado)
+│
+├── public/theme.js                    ← init del tema, parser-blocking (sin flash)
+├── src/                               ← LA UI (Astro)
+│   ├── middleware.ts                  ← perímetro: SIVO_ENV + auth + 302/401 + fake dev
+│   ├── layouts/Shell.astro            ← sidebar + topbar + toast
+│   ├── lib/
+│   │   ├── nav.ts                     ← NAV / NAV_SOON (sidebar)
+│   │   ├── format.ts                  ← escape/fechas/moneda/badge/iconos
+│   │   ├── flash.ts                   ← códigos de flash del PRG
+│   │   └── server/flows.ts            ← `runFlow` (in-process) + `feEnv`
+│   ├── components/                    ← Badge.astro, AppCard.astro
+│   ├── islands/paddle.ts              ← ÚNICA isla cliente (Paddle)
+│   ├── styles/app.css
+│   └── pages/
+│       ├── index.astro                → Inicio   (flow portal.overview)
+│       ├── aplicaciones.astro         → Apps     (flow portal.apps)
+│       ├── aplicaciones/toggle.ts     → POST + PRG
+│       ├── facturacion.astro          → Billing  (flow portal.billing)
+│       ├── facturacion/{soporte,autorenew}.ts   → POST + PRG
+│       ├── api/health.ts, api/facturacion/{checkout,portal}.ts  → JSON
+│       └── 404.astro? (no: Astro default)
 │
 ├── backend/                           ← FLOW-ENGINE RUNTIME ONLY
-│   ├── app.js                         ← Hono: CORS + auth + /ui/* → /api/_ui/* + forward
-│   ├── server.js                      ← dev: Bun.serve (:3034), normaliza /portal
-│   ├── worker-entry.js                ← prod: bridge CF (normaliza /portal)
 │   ├── fe.mjs                         ← única instancia de flow-engine
 │   ├── flows/
 │   │   ├── error-handler-500.flow.json
-│   │   ├── health.flow.json
-│   │   ├── portal-me.flow.json        ← API JSON (RPC getTenantInfo)
-│   │   ├── portal-apps.flow.json      ← API JSON (RPC getInstalledApps)
-│   │   └── ui.portal.flow.json        ← página HTML (flow ui.*)
+│   │   ├── portal.overview.flow.json          ← GET  /portal/overview
+│   │   ├── portal.apps.flow.json              ← GET  /portal/apps
+│   │   ├── portal.billing.flow.json           ← GET  /portal/billing
+│   │   ├── portal.app.toggle.flow.json        ← POST /portal/apps/toggle
+│   │   ├── portal.support.set.flow.json       ← POST /portal/billing/support
+│   │   ├── portal.autorenew.set.flow.json     ← POST /portal/billing/autorenew
+│   │   ├── portal.billing-checkout.flow.json  ← POST /portal/billing/checkout
+│   │   └── portal.billing-portal.flow.json    ← POST /portal/billing/portal
 │   ├── nodes/
 │   │   ├── index.js                   ← registry (extraNodes)
-│   │   ├── auth/                      ← portal-me, portal-apps (RPC)
-│   │   ├── portal/portal-overview.js  ← agregado del dashboard (RPC x2)
-│   │   └── html/html-response.js      ← `ui.html-response` (render server-side)
+│   │   └── portal/                    ← los 8 nodos RPC (reads/writes/Paddle)
 │   └── src/
-│       ├── lib/env.mjs                ← env proxy (whitelist + getAuthBase/getAppsBase)
-│       ├── middleware/attach-auth-claims.js  ← auth via RPC (browser→302 login)
-│       ├── dev/fake-auth-binding.mjs  ← dev-only: mock de `env.AUTH` (HTTP a :3031)
-│       └── ui/                        ← capa de UI server-rendered
-│           ├── pages.js               ← shell (sidebar + topbar + islands bootstrapper)
-│           ├── fragments.js           ← escape, iconos, badges, fechas
-│           ├── styles.js              ← CSS vanilla (string)
-│           ├── static.js              ← sirve CSS/htmx/islands
-│           ├── templates/             ← index.js (registry) + portal.js + misc.js
-│           ├── islands/               ← *.island.js (theme, shared)
-│           ├── islands-inline.mjs     ← AUTO-GENERADO (gen:islands)
-│           └── vendor/                ← htmx.min.js + htmx-inline.mjs (gen:htmx)
+│       ├── lib/env.mjs                ← env proxy (globalThis.SIVO_ENV)
+│       ├── middleware/identity.mjs    ← resolución de identidad (sin Hono)
+│       └── dev/fake-auth-binding.mjs  ← dev-only: mock de `env.AUTH` (HTTP a :3031)
 └── scripts/
-    ├── dev-backend.mjs                ← dev: _auth (:3031) + portal (:3034)
-    ├── gen-htmx-inline.mjs            ← htmx.min.js → htmx-inline.mjs
-    ├── gen-islands-inline.mjs         ← islands/*.island.js → islands-inline.mjs
-    ├── build.mjs                      ← esbuild bundle (chequeo de tamaño)
-    └── patch-deployed-wrangler.mjs
+    ├── dev-backend.mjs                ← dev: _auth (:3031) + astro dev (:3034)
+    └── smoke.mjs                      ← smoke Chrome headless (CSP/SSR/isla)
 ```
 
 ## Cómo corre
@@ -65,90 +83,128 @@ _portal/
 ```bash
 bun install
 cp .env.example .env.development
-
-bun run dev:dev    # [auth] :3031 (reusa si ya está) + [be] :3034
-# UI: http://localhost:3034/
+bun run dev:dev    # [auth] :3031 (reusa si ya está) + astro dev :3034
+# UI: https://localhost:3034/
 ```
 
-- **Dev**: `bun server.js` (Bun) sirve TODO en la raíz (`localhost:3034/`). El
-  binding `env.AUTH` lo suple `fake-auth-binding.mjs` (HTTP a `_auth` :3031) →
-  paridad local↔prod.
-- **Dev HTTPS (opcional)**: con `DEV_TLS_CERT`/`DEV_TLS_KEY` (certs de
-  `mkcert`) el dev server sirve `https://localhost:3034/`. Hace falta para
-  Paddle.js (el checkout overlay exige secure context). Ver
-  `_controlplane/docs/paddle-integration.md`.
+- **Dev**: `astro dev` corre en **workerd** (via `@astrojs/cloudflare`). El
+  Service Binding `AUTH` no existe localmente → el middleware monta el **fake
+  binding** (HTTP contra `_auth` :3031) en `globalThis.__SIVO_DEV_AUTH__`.
+  Se conserva el loop Paddle local: `portal → _auth :3031 → _controlplane :3030`.
+- **HTTPS dev (obligatorio para Paddle)**: el overlay exige secure context. Los
+  certs de mkcert viven en `_sivocloud/.certs/` y `astro.config.mjs` los usa en
+  `vite.server.https`. Sin certs arranca en HTTP (y el overlay no abre).
 - **Prod**: `wrangler deploy --env prod` → `panel.sivocloud.dev/` (subdominio
-  propio, igual que `auth.sivocloud.dev`; el path de dev y prod es el mismo).
+  propio; el path de dev y prod es el mismo, sin prefijo).
 
 ## Arquitectura (reglas)
 
-1. **El backend = flows + RPC.** Cada endpoint es un flow JSON. El negocio
-   del portal es **metadata vía RPC** (`getTenantInfo`, `getInstalledApps`,
-   `verifySession`) — NO hay DB propia.
-2. **Hono hace SOLO el perímetro**: CORS, auth (`attachAuthClaims`) y
-   forward a flow-engine (las páginas `/ui/*` se reescriben a `/api/_ui/*`).
-3. **UI server-rendered**: las páginas son flows `ui.*` que terminan en el
-   nodo `ui.html-response` (renderiza una vista de `src/ui/templates`).
-4. **Islands**: JS cliente en `src/ui/islands/*.island.js`, inlinados por
-   `gen:islands` y servidos en `/ui/static/islands/*`. Hoy: `theme`.
-5. **NO `/frontend`**: no hay Svelte ni Vite. CSS vanilla en `styles.js`.
+1. **El backend = flows + RPC.** Cada operación es un flow JSON que termina en
+   `http-response` (JSON). El negocio es **metadata vía RPC** (`getTenantInfo`,
+   `getInstalledApps`, `getSubscription`, `createCheckout`, …) — NO hay DB.
+2. **NO hay Hono.** El perímetro (publicar `SIVO_ENV`, resolver identidad,
+   302 al login / 401 JSON) vive en `src/middleware.ts`, compartiendo
+   `backend/src/middleware/identity.mjs`.
+3. **Los flows son INTERNOS.** No se exponen por HTTP: `runFlow('/api/<flow>')`
+   los llama in-process usando su `http-in` como dirección (el motor los monta
+   bajo `/api`). El browser solo habla con páginas y endpoints de Astro.
+4. **Todo llega del server.** La página corre su read flow **durante el
+   render**; no hay fetch del cliente para contenido. Los writes son POST al
+   server que redirigen (PRG) y la página re-consulta el estado real.
+5. **Islas**: sólo `paddle.ts` (SDK de Paddle en el browser) y el toggle de
+   tema. Sin framework: TS vanilla, bundleado por Astro.
+6. **CSS vanilla** en `src/styles/app.css` (clases `.btn`, `.card`, `.badge`,
+   `.kpi`, …). Sin Tailwind ni utilidades.
 
-## Agregar una página/section (ej. Facturación)
+## Agregar una sección
 
-1. **Vista** en `backend/src/ui/templates/<section>.js`
-   (`(ctx) => { title, active, html }`) y registrala en `templates/index.js`.
-2. **Flow** `backend/flows/ui.<section>.flow.json`:
+1. **Flow read** `backend/flows/portal.<sección>.flow.json`:
    ```json
    [
-     { "id": "in", "type": "http-in", "method": "GET", "path": "/_ui/<section>", "wires": [["ov"]] },
-     { "id": "ov", "type": "<nodo que arma la data>", "wires": [["r"]] },
-     { "id": "r", "type": "ui.html-response", "wires": [[]], "view": "<section>", "layout": "app", "dataPath": "payload.data" }
+     { "id": "in", "type": "http-in", "method": "GET", "path": "/portal/<sección>", "wires": [["n"]] },
+     { "id": "n", "type": "<nodo que arma la data>", "wires": [["shape"]] },
+     { "id": "shape", "type": "transform", "expression": "payload.data", "outputProperty": "payload", "wires": [["resp"]] },
+     { "id": "resp", "type": "http-response", "statusCode": "200", "wires": [[]] },
+     { "id": "catch", "type": "catch", "scope": "", "wires": [["err500Handler"]] },
+     { "id": "err500Handler", "type": "subflow", "flowRef": "error-handler-500", "outputPath": "payload", "wires": [["err500"]] },
+     { "id": "err500", "type": "http-response", "statusCode": "500", "wires": [[]] }
    ]
    ```
-3. **Registrar** el flow en `backend/fe.mjs` (FLOWS map).
-4. **Nav**: sumar la entrada en `NAV` (o pasar de `NAV_SOON` a `NAV`) en
-   `backend/src/ui/pages.js`.
+   Los nodos de lectura devuelven `{ data: {...} }` → el `transform` lo
+   desenvuelve para que el body sea la data pelada.
+2. **Registralo** en `backend/fe.mjs` (import + entrada en `FLOWS`).
+3. **Página** `src/pages/<sección>.astro`:
+   ```astro
+   const { data } = await runFlow('/api/portal/<sección>', {
+     locals: Astro.locals, cookieHeader: Astro.request.headers.get('cookie') || '',
+   })
+   ```
+   y renderizá con el `Shell.astro` (le pasás `title`, `active`, `user`,
+   `tenantId`).
+4. **Writes**: endpoint `src/pages/<sección>/<acción>.ts` (POST) que llama el
+   flow y hace `redirect('/<sección>?flash=<code>', 303)`; sumá el código en
+   `src/lib/flash.ts`.
+5. **Nav**: agregá la entrada en `NAV` (o movela de `NAV_SOON`) en
+   `src/lib/nav.ts`.
 
-## Agregar una isla JS
+## Gotchas que ya nos mordieron
 
-1. `backend/src/ui/islands/<nombre>.island.js` exportando `hydrate(root)`.
-2. `bun run gen:islands` (regenera `islands-inline.mjs`).
-3. Registrar el root en `ISLAND_ROOTS` del bootstrapper (`pages.js`) y
-   marcar el elemento con `data-island="<nombre>"`.
+- **`defineConfig` con función ROMPE el adapter de Cloudflare.** Si el config es
+  `defineConfig(({command}) => ({...}))`, el adapter NO inyecta sus plugins de
+  Vite y el SSR corre en Node → `Cannot find module 'cloudflare:workers'`.
+  Calculá todo a nivel de módulo (`process.env.NODE_ENV` distingue dev/build).
+- **`security.csp.scriptDirective.resources` / `styleDirective.resources`
+  REEMPLAZAN el `'self'` por defecto** (no lo suman). Si no incluís `'self'`,
+  la app queda sin CSS y sin isla. El smoke test lo detecta.
+- **Los flows se montan bajo `/api`** (`httpNodeRoot`). `runFlow` recibe el
+  path completo: `/api/portal/overview`, no `/portal/overview`.
+- **Astro ignora archivos/dirs con prefijo `_`** en `src/pages/`.
+- **Nada de `style="…"` inline ni `onclick=`**: la CSP es estricta. Para barras
+  usá `<progress>` o clases; `data-action`-style no aplica (usá `<form>` para
+  writes).
+- **Dev no emite CSP** (Astro sólo la manda en el build). Para validar CSP
+  corré `astro build` + `astro preview` + `bun run smoke`. El modo "fake auth"
+  en un build local se activa con `DEV_AUTH_FAKE=1` (en `wrangler.preview.jsonc`).
+- **`astro dev` se auto-manda a background** cuando lo lanza un agente; seteá
+  `ASTRO_DEV_BACKGROUND=1` para forzar foreground (el nombre engaña).
+- **El config de dev es FLAT** (`wrangler.preview.jsonc`): el plugin de CF no
+  resuelve `services`/`vars` de un `wrangler.jsonc` anidado por `env`.
 
 ## Nodos/RPC
 
-- `portal-me` / `portal-apps`: API JSON legacy (RPC individual).
-- `portal-overview`: agregado del dashboard (llama los 2 RPC y combina).
-- `ui.html-response`: terminal; renderiza la vista + shell.
+Todos en `backend/nodes/portal/`, todos RPC vía `env.AUTH`:
+`portal-overview`, `portal-apps-catalog`, `portal-billing` (reads);
+`portal-app-toggle`, `portal-set-support`, `portal-set-autorenew` (writes);
+`portal-paddle-checkout`, `portal-paddle-portal` (Paddle).
 
-El cookie de sesión llega al flow vía `ctx.env.cookieHeader` (lo setea
-`app.js` al forwardear).
+El cookie de sesión llega al flow vía `ctx.env.cookieHeader` (lo setea `feEnv`
+en `src/lib/server/flows.ts`).
 
 ## Links env-aware
 
 Login/logout y "Abrir app" usan bases configurables:
 - `AUTH_BASE` (default `https://auth.sivocloud.dev`)
 - `APPS_BASE` (default `https://apps.sivocloud.dev`)
+- `APP_BASES` (override per-app, dev)
 
-En dev apuntan a los puertos locales (ver `.env.example`).
+En dev apuntan a los puertos locales.
 
 ## Deploy
 
 ```bash
-bun run gen:htmx && bun run gen:islands   # si tocaste vendor/ o islands/
-wrangler deploy --env prod                # bundlea backend/worker-entry.js
+bun run check        # lint-flows + audit-nodes + astro check
+bun run smoke        # contra un build (astro preview)
+wrangler deploy --env prod
 ```
 
-Service Binding `AUTH` debe estar declarado en `wrangler.jsonc`
+Service Binding `AUTH` declarado en `wrangler.jsonc`
 (`env.dev.services` / `env.prod.services`) → target `sivocloud-auth-dev` /
 `sivocloud-auth`. **Deployar `_auth` antes que `_portal`.**
 
 ## Pendiente / futuro
 
 - Sección **Configuración** (hoy placeholder en `NAV_SOON`).
-- RBAC en el portal: hoy zero-secrets RPC; si Config necesita escribir, hay
-  que definir nuevos RPC en `_auth` (no darle D1 al portal).
-- **Facturación** (v0.4.0) es read + writes acotados (soporte, auto-renovación)
-  vía RPC `env.AUTH` (`getSubscription`/`getUsageSummary`/`getInvoices`/
-  `setSupportPlan`/`setAutoRenew`). El cobro aún es interno (sin Paddle).
+- RBAC en el portal: hoy zero-secrets RPC; si Config necesita escribir, definir
+  nuevos RPC en `_auth` (no darle D1 al portal).
+- **Facturación**: read + writes acotados (soporte, auto-renovación) + Paddle
+  (checkout/portal). El cobro recurrente y el overage los maneja `_controlplane`.

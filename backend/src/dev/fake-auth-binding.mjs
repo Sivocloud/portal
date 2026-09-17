@@ -7,20 +7,21 @@
  * `env.AUTH.getTenantInfo({cookie})` / `getInstalledApps({cookie})` via
  * CF Service Binding — RPCs internos con latencia ~0, costo $0.
  *
- * En local (`bun server.js` con Node) los Service Bindings no existen:
- * `c.env.AUTH` es undefined. Acá proveemos un mock que pega contra
- * _auth's HTTP wrappers (`/api/auth/verify`, `/api/auth/broker/info`).
+ * En dev local no hay Service Binding: el `_auth` de dev corre con
+ * `wrangler dev` en :3031. El middleware de Astro (`src/middleware.ts`)
+ * monta este mock en `globalThis.__SIVO_DEV_AUTH__` y pega contra los HTTP
+ * wrappers de _auth (`/api/auth/verify`, `/api/auth/broker/*`).
  *
  * Cero lógica HMAC ni decrypt duplicada — la verificación real + queries
  * viven en `_auth/backend/nodes/auth/sign-session.js` y
  * `_auth/backend/nodes/auth/auth-broker-rpc.js`.
  *
- * Activado solo en dev: `app.js` lo monta cuando
- * `isDev() && !c.env.AUTH`. En CF Workers `isDev()` es false.
+ * Activado solo en dev: `src/middleware.ts` lo monta cuando falta
+ * `env.AUTH` y (dev o `DEV_AUTH_FAKE=1`). En prod el binding existe y nunca
+ * se monta.
  */
 
-// AUTH_BASE (schema-aware: https si _auth corre con DEV_TLS) gana sobre
-// AUTH_PORT; si no, el default http de siempre.
+// AUTH_BASE gana sobre AUTH_PORT; si no, el default http://localhost:3031.
 const DEFAULT_BASE =
   process.env.AUTH_BASE ||
   (process.env.AUTH_PORT ? `http://localhost:${process.env.AUTH_PORT}` : 'http://localhost:3031')

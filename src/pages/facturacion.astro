@@ -1,0 +1,258 @@
+---
+/**
+ * facturacion.astro — Suscripción, consumo del período y facturas.
+ *
+ * Dataset: read flow `portal.billing` (subscription + usage + invoices).
+ * Los writes (soporte / auto-renovación) son POST + PRG (F3); el checkout y
+ * el Customer Portal los maneja la isla de Paddle (F4).
+ */
+import Shell from '../layouts/Shell.astro'
+import Badge from '../components/Badge.astro'
+import { runFlow } from '../lib/server/flows'
+import { flashFrom } from '../lib/flash'
+import { fmtDate, fmtMoney, fmtPeriod } from '../lib/format'
+
+const id = Astro.locals.identity
+const cookieHeader = Astro.request.headers.get('cookie') || ''
+const { data } = await runFlow('/api/portal/billing', { locals: Astro.locals, cookieHeader })
+const d: any = data || {}
+const flash = flashFrom(Astro.url)
+
+const currency = (d.estimate && d.estimate.currency) || 'USD'
+const sub = d.subscription || null
+const items: any[] = d.items || []
+const usage = d.usage || { period: {}, lines: [], totals: {} }
+const invoices: any[] = d.invoices || []
+const canManage = !!d.canManage
+
+const supportItem = items.find((it) => String(it.productCode || '').startsWith('support:'))
+const currentSupport = supportItem ? String(supportItem.productCode).split(':')[1] : null
+const supportOpts = [
+  { code: null, label: 'Sin soporte' },
+  { code: 'standard', label: 'Estándar · $50' },
+  { code: 'premium', label: 'Premium · $100' },
+]
+const autoRenewOn = !sub?.cancelAtPeriodEnd
+const walletPacks = [
+  { cents: 2000, label: '$20' },
+  { cents: 5000, label: '$50' },
+  { cents: 10000, label: '$100' },
+]
+---
+<Shell title="Facturación" active="billing" user={id?.user} role={id?.user?.role} tenantId={id?.claims?.tenant} flash={flash}>
+  {!d.valid
+    ? (
+      <div class="card"><div class="card-body">
+        <h2 class="mb">No disponible</h2>
+        <p class="muted">No pudimos cargar tu facturación. Volvé a iniciar sesión o contactá a soporte.</p>
+      </div></div>
+    )
+    : (
+      <div id="billing-body">
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="label">Estado</div>
+            <div class="value"><Badge status={sub?.status || '—'} /></div>
+            <div class="hint">{sub?.cancelAtPeriodEnd ? 'Se cancela al fin del período' : 'Renovación automática'}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Próximo cobro estimado</div>
+            <div class="value">{fmtMoney(d.estimate?.totalCents, currency)}</div>
+            <div class="hint">{fmtMoney(d.estimate?.recurringCents, currency)} fijo + {fmtMoney(d.estimate?.usageCents, currency)} consumo</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Consumo del período</div>
+            <div class="value">{fmtMoney(usage.totals?.usageCents, currency)}</div>
+            <div class="hint">{fmtPeriod(usage.period?.start, usage.period?.end)}</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span>Suscripción</span>
+            <span class="badge info">{currency} · {fmtPeriod(sub?.periodStart, sub?.periodEnd)}</span>
+          </div>
+          <div class="card-body">
+            {!sub
+              ? <div class="empty">Todavía no tenés una suscripción activa. Instalá una app para comenzar.</div>
+              : (
+                <>
+                  {items.length === 0
+                    ? <div class="empty">No hay conceptos facturables todavía.</div>
+                    : (
+                      <table class="tbl">
+                        <thead><tr><th>Concepto</th><th>Tipo</th><th class="num">Precio</th><th class="num">Franquicia</th></tr></thead>
+                        <tbody>
+                          {items.map((it) => (
+                            <tr>
+                              <td>
+                                {it.name}
+                                {it.productCode && <div class="small muted">{it.productCode}</div>}
+                              </td>
+                              <td>{it.type === 'metered_op' ? 'por uso' : (it.recurrence === 'monthly' ? 'mensual' : (it.recurrence || '—'))}</td>
+                              <td class="num">
+                                {it.type === 'metered_op'
+                                  ? `${fmtMoney(it.overageUnitPriceCents, it.currency || currency)} / op`
+                                  : `${fmtMoney(it.unitPriceCents, it.currency || currency)} / mes`}
+                              </td>
+                              <td class="num">{it.includedQuantity > 0 ? `${it.includedQuantity} incl.` : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+
+                  {canManage && (
+                    <div class="row between mt">
+                      <div>
+                        <div class="small muted mb">Plan de soporte SIVOCLOUD</div>
+                        <div class="pill-group">
+                          {supportOpts.map((o) => {
+                            const isActive = (o.code || null) === currentSupport
+                            const planCode = o.code || 'none'
+                            return (
+                              <form method="POST" action={`/facturacion/soporte?planCode=${planCode}`}>
+                                <button class={isActive ? 'active' : ''} type="submit">{o.label}</button>
+                              </form>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {canManage && (
+                    <div class="row between mt">
+                      <div class="small muted">
+                        {autoRenewOn
+                          ? 'Tu suscripción se renueva automáticamente cada período.'
+                          : 'Tu suscripción no se renovará al final del período.'}
+                      </div>
+                      <form method="POST" action={`/facturacion/autorenew?enabled=${autoRenewOn ? 'false' : 'true'}`}>
+                        <button class={autoRenewOn ? 'btn' : 'btn primary'} type="submit">
+                          {autoRenewOn ? 'Desactivar auto-renovación' : 'Reactivar auto-renovación'}
+                        </button>
+                      </form>
+                    </div>
+                  )}
+
+                  {canManage && (
+                    <div class="row between mt">
+                      {sub.paddleSubscriptionId
+                        ? (
+                          <>
+                            <div>
+                              <div class="small muted mb">Pago con Paddle</div>
+                              <div><Badge status={sub.paddleStatus || 'active'} /> <span class="small muted">{sub.paddleSubscriptionId}</span></div>
+                            </div>
+                            <div><button class="btn" data-paddle-action="portal" type="button">Gestionar suscripción</button></div>
+                          </>
+                        )
+                        : (
+                          <>
+                            <div class="small muted">Activá el cobro automático de la suscripción con Paddle.</div>
+                            <div><button class="btn primary" data-paddle-action="checkout" data-kind="subscription" type="button">Suscribirme con Paddle</button></div>
+                          </>
+                        )}
+                    </div>
+                  )}
+
+                  {!canManage && <p class="small muted mt">Solo el dueño de la cuenta puede modificar el soporte y la renovación.</p>}
+                </>
+              )}
+          </div>
+        </div>
+
+        {canManage && (
+          <div class="card">
+            <div class="card-head">
+              <span>Saldo prepago</span>
+              <span class="badge info">{d.wallet && d.wallet.balanceCents != null ? fmtMoney(d.wallet.balanceCents, currency) : '—'}</span>
+            </div>
+            <div class="card-body">
+              <p class="small muted mb">Cargá saldo para pagar cargos y servicios puntuales (consultoría, configuración).</p>
+              <div class="pill-group">
+                {walletPacks.map((p) => (
+                  <button
+                    class="btn"
+                    data-paddle-action="checkout"
+                    data-kind="wallet"
+                    data-amount-cents={p.cents}
+                    data-currency={currency}
+                    data-description="Saldo prepago SIVOCLOUD"
+                    type="button">{p.label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div class="card">
+          <div class="card-head">
+            <span>Consumo del período</span>
+            <span class="muted small">{fmtPeriod(usage.period?.start, usage.period?.end)}</span>
+          </div>
+          <div class="card-body">
+            {usage.lines.length === 0
+              ? <div class="empty">Sin consumo registrado en este período.</div>
+              : (
+                <table class="tbl">
+                  <thead><tr><th>Métrica</th><th class="num">Consumo</th><th class="num">Incluido</th><th class="num">Excedente</th><th class="num">Estimado</th></tr></thead>
+                  <tbody>
+                    {usage.lines.map((l: any) => {
+                      const pct = l.includedQuantity > 0
+                        ? Math.min(100, Math.round((l.quantity / l.includedQuantity) * 100))
+                        : (l.billableQuantity > 0 ? 100 : 0)
+                      const over = l.billableQuantity > 0
+                      return (
+                        <tr>
+                          <td>
+                            {l.name}
+                            {l.includedQuantity > 0 && (
+                              <progress class={`progress-bar${over ? ' over' : ''}`} value={pct} max="100" />
+                            )}
+                          </td>
+                          <td class="num">{l.quantity}</td>
+                          <td class="num">{l.includedQuantity || 0}</td>
+                          <td class="num">{l.billableQuantity}</td>
+                          <td class="num">{fmtMoney(l.estimatedCents, currency)}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Facturas</div>
+          <div class="card-body">
+            {invoices.length === 0
+              ? <div class="empty">Todavía no hay facturas emitidas.</div>
+              : (
+                <table class="tbl">
+                  <thead><tr><th>Número</th><th>Estado</th><th>Período</th><th>Vence</th><th class="num">Total</th></tr></thead>
+                  <tbody>
+                    {invoices.map((inv) => (
+                      <tr>
+                        <td>{inv.number}</td>
+                        <td><Badge status={inv.status} /></td>
+                        <td>{fmtPeriod(inv.periodStart, inv.periodEnd)}</td>
+                        <td>{fmtDate(inv.dueAt)}</td>
+                        <td class="num">{fmtMoney(inv.totalCents, inv.currency || currency)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+          </div>
+        </div>
+      </div>
+    )}
+</Shell>
+
+<!-- Isla de Paddle (checkout overlay + Customer Portal). Astro la bundlea. -->
+<script>
+  import '../islands/paddle'
+</script>

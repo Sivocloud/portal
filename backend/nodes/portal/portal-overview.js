@@ -7,7 +7,7 @@
  *   - `getInstalledApps({ cookie })` → { valid, apps }
  *
  * El cookie viaja en `ctx.env.cookieHeader` / `ctx.env.requestHeaders`
- * (inyectado por `app.js` al forwardear a flow-engine).
+ * (lo setea `feEnv` en `src/lib/server/flows.ts` al llamar el flow).
  *
  * @table none (no SQL — solo RPC `env.AUTH`)
  */

@@ -1,8 +1,8 @@
 /**
  * backend/src/lib/env.mjs — Abstracción de variables de entorno.
  *
- * En Node.js (dev/prod local): lee process.env.
- * En CF Workers: lee globalThis.SIVO_ENV (seteado por worker-entry.js).
+ * En CF Workers / workerd: lee globalThis.SIVO_ENV (lo publica el middleware
+ * de Astro, `src/middleware.ts`). En Node (tests/scripts): process.env.
  *
  * Phase 4 (2026-09-14): _portal NO necesita TURSO_CONTROL_PLANE_*,
  * CONTROL_PLANE_ENCRYPTION_KEY, SESSION_SECRET ni DB bindings. Cero
@@ -14,8 +14,8 @@
 const KEYS = [
   'APP_DOMAIN',
   'NODE_ENV',
+  // Puerto de _auth en dev (base del fake binding cuando no hay AUTH_BASE).
   'AUTH_PORT',
-  'PORT',
   // Bases browser-visibles para links (logout / abrir app). En prod apuntan
   // a auth.sivocloud.dev y apps.sivocloud.dev; en dev se overridean.
   'AUTH_BASE',
@@ -23,10 +23,6 @@ const KEYS = [
   // Override per-app (dev): cada app local corre en su propio puerto, así que
   // `APPS_BASE` (un solo host) no alcanza. JSON: { "<slug>": "<base>" }.
   'APP_BASES',
-  // TLS dev-only (Paddle.js exige secure context). Rutas a cert/key (mkcert).
-  // Vacías en prod (lo termina Cloudflare).
-  'DEV_TLS_CERT',
-  'DEV_TLS_KEY',
 ];
 
 function readEnv() {

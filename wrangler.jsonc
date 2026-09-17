@@ -1,22 +1,21 @@
-// wrangler.jsonc — Deploy config para _portal (CF Worker single).
+// wrangler.jsonc — Deploy config para _portal (CF Worker single, UI en Astro).
 //
-// _portal es la **prueba viva** del patrón zero-secrets: NO tiene
-// secrets de plataforma, NO tiene D1 binding. Solo el Service Binding
-// `env.AUTH` contra _auth. Toda metadata de tenant/apps llega via
-// RPC `getTenantInfo` / `getInstalledApps` / `getTenantCredentials`.
+// _portal es la **prueba viva** del patrón zero-secrets: NO tiene secrets de
+// plataforma ni D1. Solo el Service Binding `env.AUTH` contra _auth. Toda la
+// metadata de tenant/apps llega vía RPC (`getTenantInfo`, `getInstalledApps`,
+// `getTenantCredentials`, …).
 //
-// URL canónica: `panel.sivocloud.dev/` — subdominio propio, igual que
-// `auth.sivocloud.dev`. El portal es un servicio de plataforma (no una app
-// por-tenant), y resuelve el tenant desde el cookie, no desde el path
-// (sivo-pos usa `/sivopos/<tenant>/`).
+// URL canónica: `panel.sivocloud.dev/` — subdominio propio (igual que
+// `auth.sivocloud.dev`). El portal resuelve el tenant desde el cookie, no
+// desde el path.
 //
-// 2026-09-16: era `portal.sivocloud.dev`. Se renombró a `panel` porque
-// `portal` cae/se confunde con el wildcard `*.sivocloud.dev/*` de
-// `_sivostudio` (launcher de SivoStudio + preview URLs del sandbox). El
-// rename fue gratis: `_portal` nunca se había deployado.
+// La UI la sirve Astro (`main` = entrypoint del adapter) y el backend de
+// flows se llama in-process. En dev, `astro dev` corre en workerd y el
+// binding AUTH se suple con el fake HTTP contra _auth :3031 (ver
+// `src/middleware.ts`) — por eso el `dev` de acá no se usa localmente.
 {
   "name": "sivocloud-portal",
-  "main": "backend/worker-entry.js",
+  "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "no_handle_cross_request_promise_resolution"],
 
@@ -24,9 +23,24 @@
     "enabled": true
   },
 
-  // Server-rendered (HTMX): NO hay SPA ni binding ASSETS. El worker sirve
-  // TODO — páginas HTML (flow ui.portal), fragmentos HTMX, assets estáticos
-  // (/ui/static/*, servidos por Hono) y la API JSON (/api/*).
+  // Astro sirve los assets hasheados de `dist/` con el binding ASSETS y cae
+  // al worker para lo on-demand (páginas SSR + endpoints).
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+
+  // Vars default (dev): lo que ve `astro dev` / `wrangler dev` sin `--env`.
+  // El overlay de Paddle exige HTTPS; `_auth` local corre en HTTP :3031 y las
+  // apps en sus puertos (APP_BASES). En prod estas se vacían (abajo) para que
+  // `getAuthBase()`/`getAppsBase()` caigan a los defaults de sivocloud.dev.
+  "vars": {
+    "APP_DOMAIN": "localhost",
+    "NODE_ENV": "development",
+    "AUTH_BASE": "http://localhost:3031",
+    "APPS_BASE": "http://localhost:3032",
+    "APP_BASES": "{\"pos\":\"http://localhost:3032\",\"b2b\":\"http://localhost:5173\"}"
+  },
 
   "routes": [
     {
@@ -35,13 +49,14 @@
     }
   ],
 
-  // ZERO vars (no hay config de plataforma). El portal SOLO necesita el
-  // binding `AUTH` (Service Binding) para hablar con _auth.
   "env": {
     "dev": {
       "vars": {
-        "APP_DOMAIN":   "localhost",
-        "NODE_ENV":     "development"
+        "APP_DOMAIN": "localhost",
+        "NODE_ENV": "development",
+        "AUTH_BASE": "http://localhost:3031",
+        "APPS_BASE": "http://localhost:3032",
+        "APP_BASES": "{\"pos\":\"http://localhost:3032\",\"b2b\":\"http://localhost:5173\"}"
       },
       "services": [
         { "binding": "AUTH", "service": "sivocloud-auth-dev" }
@@ -49,8 +64,11 @@
     },
     "prod": {
       "vars": {
-        "APP_DOMAIN":   "panel.sivocloud.dev",
-        "NODE_ENV":     "production"
+        "APP_DOMAIN": "panel.sivocloud.dev",
+        "NODE_ENV": "production",
+        "AUTH_BASE": "",
+        "APPS_BASE": "",
+        "APP_BASES": ""
       },
       "services": [
         { "binding": "AUTH", "service": "sivocloud-auth" }

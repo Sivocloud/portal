@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.8.0] — 2026-09-17 — Migración del portal a Astro (todo del server)
+
+Reemplaza la capa **Hono + HTMX** por **Astro 7** (`output: 'server'` +
+`@astrojs/cloudflare`). Las páginas y endpoints corren **in-process** los flows
+de flow-engine (`runFlow` → `fe.handleWorker`); el navegador nunca llama a la
+API para contenido. Se elimina Hono, el render con templates en JS y htmx.
+
+### Added
+
+- **Astro**: `astro.config.mjs` (adapter CF, CSP con hashes, TLS dev con
+  mkcert), `src/middleware.ts` (perímetro: publica `SIVO_ENV`, resuelve
+  identidad, 302 al login / 401 JSON, fake `env.AUTH` en dev),
+  `src/layouts/Shell.astro` (misma sidebar de siempre), `src/lib/nav.ts`,
+  `src/lib/format.ts`, `src/lib/flash.ts`, `src/styles/app.css`.
+- **Puente in-process** `src/lib/server/flows.ts`: `runFlow(path, {locals,
+  cookieHeader})` + `feEnv()` (identidad + cookie + `AUTH` para los flows).
+- **Read flows JSON**: `portal.overview`, `portal.apps`, `portal.billing`
+  (mismos nodos RPC, terminal `http-response` en vez de `ui.html-response`).
+- **Write flows JSON + PRG**: `portal.app.toggle`, `portal.support.set`,
+  `portal.autorenew.set`; endpoints `aplicaciones/toggle.ts`,
+  `facturacion/{soporte,autorenew}.ts` que redirigen con `?flash=<code>`.
+- **Paddle**: isla vanilla `src/islands/paddle.ts` (checkout overlay +
+  Customer Portal), flujos `portal.billing-checkout` / `portal.billing-portal`
+  y endpoints JSON `api/facturacion/{checkout,portal}.ts`.
+- **Dev**: `astro dev` en workerd con HTTPS (mkcert) y auth local fake contra
+  `_auth` :3031 (`wrangler.preview.jsonc` flat + `DEV_AUTH_FAKE=1`).
+- **Smoke** `scripts/smoke.mjs` (Chrome headless): CSP con hashes + 0
+  violaciones, CSS aplica, render con datos reales, isla sin 404, toggle de
+  tema. `astro check` sumado a `bun run check`.
+- Flujo `portal.billing` con `transform` para desenvolver `payload.data`.
+
+### Changed
+
+- `backend/fe.mjs` registra los flows `portal.*` (los `ui.*` y
+  `portal-me`/`portal-apps` se retiraron).
+- `scripts/dev-backend.mjs` levanta `astro dev` (antes `bun server.js`).
+- `wrangler.jsonc`: `main` = entrypoint del adapter + `assets` binding.
+
+### Removed
+
+- **Hono**: `backend/app.js`, `backend/worker-entry.js`, `backend/server.js`,
+  `backend/src/middleware/attach-auth-claims.js`.
+- **Capa htmx/templates**: `backend/src/ui/**` (pages, templates, fragments,
+  styles, static, vendor/htmx, islands), el nodo `ui.html-response` y los
+  flows `ui.*`.
+- **Legacy JSON**: flows/nodos `portal-me` y `portal-apps` (los cubren
+  `portal.overview` / `portal.apps`).
+- Scripts `build.mjs`, `gen-htmx-inline.mjs`, `gen-islands-inline.mjs`,
+  `patch-deployed-wrangler.mjs`; deps `hono`, `jsonata`, `esbuild`.
+
+### Fixed
+
+- **CSP**: `security.csp.{script,style}Directive.resources` **reemplazan** el
+  `'self'` por defecto — sin `'self'` explícito no cargaban `app.css` ni la
+  isla. Lo detectó `smoke.mjs`.
+
+Tests: `lint-flows` (9 flows) + `audit-nodes` (8 nodos) + `astro check` OK.
+E2E dev: las 3 páginas con datos reales; writes (soporte/autorenew/toggle)
+con PRG + flash; checkout y Customer Portal de Paddle con transacción/sesión
+reales en sandbox. Smoke: TODO VERDE.
+
+
 ## [v0.7.2] — 2026-09-16 — Mensaje claro cuando falta un precio en Paddle
 
 ### Added

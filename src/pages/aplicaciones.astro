@@ -1,0 +1,133 @@
+---
+/**
+ * aplicaciones.astro — Apps del tenant + catálogo instalable.
+ *
+ * Dataset: read flow `portal.apps` (catalog + installed en 2 RPC a `_auth`).
+ * Los writes (desinstalar / reinstalar) son POST a `/aplicaciones/toggle` que
+ * llama el flow y vuelve por PRG (ver F3).
+ */
+import Shell from '../layouts/Shell.astro'
+import Badge from '../components/Badge.astro'
+import { runFlow } from '../lib/server/flows'
+import { flashFrom } from '../lib/flash'
+import { fmtDate, fmtMoney } from '../lib/format'
+
+const id = Astro.locals.identity
+const cookieHeader = Astro.request.headers.get('cookie') || ''
+const { data } = await runFlow('/api/portal/apps', { locals: Astro.locals, cookieHeader })
+const d: any = data || {}
+const flash = flashFrom(Astro.url)
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const currency = 'USD'
+const catalog: any[] = d.catalog || []
+const installed: any[] = d.installed || []
+const canManage = !!d.canManage
+const activeCount = installed.filter((a) => a.status === 'active').length
+
+function daysLeft(purgeAfter: unknown): number | null {
+  if (!purgeAfter) return null
+  return Math.max(0, Math.ceil((Number(purgeAfter) - Date.now()) / DAY_MS))
+}
+const bySlug = new Map(installed.map((a) => [a.appSlug, a]))
+---
+<Shell title="Aplicaciones" active="apps" user={id?.user} role={id?.user?.role} tenantId={id?.claims?.tenant} flash={flash}>
+  {!d.valid
+    ? (
+      <div class="card"><div class="card-body">
+        <h2 class="mb">No disponible</h2>
+        <p class="muted">No pudimos cargar tus aplicaciones. Volvé a iniciar sesión o contactá a soporte.</p>
+      </div></div>
+    )
+    : (
+      <div id="apps-body">
+        <div class="hero">
+          <h1>Aplicaciones</h1>
+          <div class="sub">{activeCount} de {catalog.length} apps activas</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Tus apps</div>
+          <div class="card-body">
+            {installed.length === 0
+              ? <div class="empty">No tenés apps instaladas todavía.</div>
+              : (
+                <div class="app-grid">
+                  {installed.map((app) => {
+                    const product = catalog.find((c) => c.appSlug === app.appSlug)
+                    const name = product?.name || app.appSlug
+                    const price = product ? `${fmtMoney(product.priceCents, product.currency || currency)} / ${product.recurrence || 'mes'}` : '—'
+                    const left = daysLeft(app.purgeAfter)
+                    return (
+                      <div class="app-card">
+                        <div class="row between">
+                          <h3>{name} <Badge status={app.status} /></h3>
+                          <span class="muted small">{price}</span>
+                        </div>
+                        <div class="db">{app.dbName || ''}</div>
+                        <div class="meta">
+                          instalado: {fmtDate(app.installedAt)}{app.deletedAt ? ` · desinstalado: ${fmtDate(app.deletedAt)}` : ''}
+                        </div>
+                        {app.status === 'deleted' && (
+                          <div class="notice warn mt">
+                            <strong>Pendiente de eliminación</strong>
+                            <div class="small">Se eliminará definitivamente {left != null ? `en ${left} día${left === 1 ? '' : 's'}` : 'pronto'}. Reinstalá para conservar los datos.</div>
+                          </div>
+                        )}
+                        {canManage && (
+                          <div class="actions">
+                            {app.status === 'deleted' && (
+                              <form method="POST" action={`/aplicaciones/toggle?action=reactivate&appSlug=${encodeURIComponent(app.appSlug)}`}>
+                                <button class="btn primary sm" type="submit">Reinstalar</button>
+                              </form>
+                            )}
+                            {app.status === 'active' && (
+                              <form method="POST" action={`/aplicaciones/toggle?action=uninstall&appSlug=${encodeURIComponent(app.appSlug)}`}>
+                                <button class="btn sm danger" type="submit">Desinstalar</button>
+                              </form>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Catálogo</div>
+          <div class="card-body">
+            {catalog.length === 0
+              ? <div class="empty">No hay apps en el catálogo.</div>
+              : (
+                <table class="tbl">
+                  <thead><tr><th>App</th><th class="num">Precio</th><th>Estado</th></tr></thead>
+                  <tbody>
+                    {catalog.map((p) => {
+                      const inst = bySlug.get(p.appSlug)
+                      const metered = p.metered && p.metered.length
+                        ? p.metered.map((m: any) => `${m.included} ${String(m.code).split('.').pop()} incl.`).join(' · ')
+                        : ''
+                      return (
+                        <tr>
+                          <td>
+                            {p.name}
+                            {p.description && <div class="small muted">{p.description}</div>}
+                            {metered && <div class="small muted">{metered}</div>}
+                          </td>
+                          <td class="num">{fmtMoney(p.priceCents, p.currency || currency)} / {p.recurrence || 'mes'}</td>
+                          <td>{inst ? <Badge status={inst.status} /> : <span class="badge">no instalada</span>}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            <p class="small muted mt">¿Querés sumar una app? La instalación se coordina con SIVOCLOUD (implica provisionar tu base de datos).</p>
+          </div>
+        </div>
+      </div>
+    )}
+</Shell>

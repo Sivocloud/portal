@@ -95,18 +95,10 @@ if (!existsSync(BACKEND_ENV_FILE)) {
   process.exit(1);
 }
 
-// Inlinea islands (JS cliente) → backend/src/ui/islands-inline.mjs.
-try {
-  await new Promise((resolve) => {
-    const c = spawnWithPrefix('be', 'bun', ['scripts/gen-islands-inline.mjs'], { cwd: APP_ROOT });
-    c.on('exit', resolve);
-  });
-} catch { /* no fatal */ }
-
-// El portal sirve HTTPS si el env file define DEV_TLS_CERT (Paddle.js exige
-// secure context). El log refleja el scheme real para no confundir.
-const beEnvText = existsSync(BACKEND_ENV_FILE) ? readFileSync(BACKEND_ENV_FILE, 'utf8') : '';
-const beScheme = /^DEV_TLS_CERT=.+$/m.test(beEnvText) ? 'https' : 'http';
+// El portal sirve HTTPS si existen los certs de mkcert (Paddle.js exige
+// secure context; los lee `astro.config.mjs` vía `vite.server.https`).
+const certPath = path.join(APP_ROOT, '..', '.certs', 'localhost.pem');
+const beScheme = existsSync(certPath) ? 'https' : 'http';
 
 console.log(`[dev-backend] env : ${devEnv}`);
 console.log(`[dev-backend] auth: http://localhost:${AUTH_PORT}`);
@@ -124,12 +116,16 @@ if (await checkPortOpen(AUTH_PORT)) {
   console.log('[dev-backend] _auth listo');
 }
 
-console.log(`[dev-backend] arrancando portal (:${BE_PORT})...`);
-be = spawnWithPrefix('be', 'bun', ['--env-file', BACKEND_ENV_FILE, 'server.js'], {
-  cwd: BACKEND_DIR,
-  env: { PORT: String(BE_PORT), AUTH_PORT: String(AUTH_PORT) },
+// ASTRO_DEV_BACKGROUND: a pesar del nombre, seteado fuerza el modo FOREGROUND
+// (desactiva la autodetección de agente de `astro dev`, que si no lo manda a
+// segundo plano y el orchestrator no puede matarlo).
+console.log(`[dev-backend] arrancando portal (:${BE_PORT}) con astro dev...`);
+be = spawnWithPrefix('be', 'bun', ['x', 'astro', 'dev', '--port', String(BE_PORT)], {
+  cwd: APP_ROOT,
+  env: { ASTRO_DEV_BACKGROUND: '1' },
 });
 be.on('exit', (code) => { if (!shuttingDown) cleanup(code ?? 0); });
-if (!(await waitForPort(BE_PORT))) { console.error('[dev-backend] portal no levantó.'); cleanup(1); }
+// `astro dev` tarda ~20s en compilar el primer bundle en workerd.
+if (!(await waitForPort(BE_PORT, 120000))) { console.error('[dev-backend] portal no levantó.'); cleanup(1); }
 console.log(`[dev-backend] portal listo en :${BE_PORT}`);
 console.log(`[dev-backend] abrí ${beScheme}://localhost:${BE_PORT}/`);
