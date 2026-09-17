@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.9.0] — 2026-09-17 — Alineación con sivo-pos (glob, page-feeds, Actions, PRG-cookie)
+
+Alineación arquitectónica con `apps/sivo-pos`: misma estructura de layers, mismo
+patrón de writes y mismo check de arquitectura.
+
+### Added
+
+- **Registro automático de flows** (`backend/fe.mjs`): `import.meta.glob('./flows/*.flow.json')`
+  reemplaza los 9 imports manuales. El filename ES la clave del flow.
+- **`src/lib/page-feeds.ts`**: tabla única de rutas (`pages ↔ flow ↔ nav`).
+  `feedFor(pathname)` devuelve el flow y el nav; `loadPage(Astro)` la usa.
+- **`src/lib/server/page-data.ts`** (`loadPage`): deriva el flow de la URL, llama
+  `runFlow`, devuelve `{ status, data, error, ms }`. Las páginas ya no repiten
+  el path del flow.
+- **Astro Actions** (`src/actions/index.ts`): `appToggle`, `setSupport`,
+  `setAutoRenew` con Zod + handler que llama `runFlow`. type-safe, validación
+  en el borde, sin reimplementar negocio.
+- **PRG con cookie** (`src/middleware.ts`): `getActionContext()` +
+  cookie `sivo_portal_action` (un solo uso, 60 s) + `Astro.getActionResult()`.
+  Sin KV: el portal sigue con cero bindings.
+- **`src/lib/flash.ts`** (`flashFromResults`): extrae el `{toast}` del resultado
+  de la Action y lo pasa al shell.
+- **`scripts/check-architecture.mjs`**: 8 reglas (layer Hono/htmx no vuelve,
+  registro glob, page-feeds ↔ http-in, runFlow bajo /api, CSP estricta,
+  defineConfig plano, un solo perímetro, backend → astro/UI prohibido).
+- **`astro.config.mjs`**: `prefetch: { defaultStrategy: 'hover' }` para el nav.
+- **Cobertura de Actions en smoke** (`scripts/smoke.mjs`): click en form
+  `setAutoRenew` → PRG → toast verificado (y restaurado).
+
+### Changed
+
+- **`src/lib/nav.ts`**: `NAV` se deriva de `page-feeds.ts` (navItems), ya no
+  repite las rutas.
+- **Middleware**: identidad + PRG de Actions + caché `private, max-age=30` +
+  `Vary: Cookie` en una sola pasada (antes los writes usaban endpoints `.ts`
+  con `?flash=` en la URL).
+- **Writes en los pages**: `aplicaciones.astro` y `facturacion.astro` usan
+  `loadPage` + Actions + `flashFromResults`; desaparecen los 3 endpoints
+  `toggle.ts`, `soporte.ts`, `autorenew.ts`.
+
+### Fixed
+
+- **`feedFor` normaliza trailing slash** (`/facturacion/` → `/facturacion`):
+  si el usuario aterriza con slash, la página igualmente renderiza data.
+- **Redirect del PRG canónico**: `originPathname.replace(/\/+$/, '')` para que
+  el redirect vaya a `/facturacion` y no `/facturacion/` (evita doble
+  round-trip por normalización de Astro).
+
+Tests: `lint-flows` (9 flows) + `audit-nodes` (8 nodos) + `check:arch` (8/8) +
+`astro check` OK. Smoke: TODO VERDE (CSP 0 viol, CSS aplica, island 200, Actions
+PRG + toast idempotente).
+
 ## [v0.8.0] — 2026-09-17 — Migración del portal a Astro (todo del server)
 
 Reemplaza la capa **Hono + HTMX** por **Astro 7** (`output: 'server'` +

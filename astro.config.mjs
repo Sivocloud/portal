@@ -80,6 +80,10 @@ export default defineConfig({
   }),
   integrations: [],
   server: { port: 3034 },
+  // Prefetch de Astro: al hacer hover/focus sobre un ítem del sidebar se pide
+  // la página en segundo plano y el click navega desde la caché del browser.
+  // Depende de `private, max-age=30` + `Vary: Cookie` (ver `src/middleware.ts`).
+  prefetch: { defaultStrategy: 'hover' },
   // CSP: la maneja Astro (hashea los <script>/<style> inline que inyecta).
   // Acá van solo las fuentes/directivas que Astro no conoce:
   //   - Google Fonts (Inter) e `img-src data:` (favicon)

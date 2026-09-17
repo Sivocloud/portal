@@ -2,21 +2,22 @@
 /**
  * facturacion.astro — Suscripción, consumo del período y facturas.
  *
- * Dataset: read flow `portal.billing` (subscription + usage + invoices).
- * Los writes (soporte / auto-renovación) son POST + PRG (F3); el checkout y
- * el Customer Portal los maneja la isla de Paddle (F4).
+ * Dataset: read flow de la pantalla (`portal.billing`) vía `loadPage(Astro)`.
+ * Los writes (soporte / auto-renovación) son las Actions `setSupport` y
+ * `setAutoRenew` (POST + PRG); el checkout y el Customer Portal los maneja la
+ * isla de Paddle.
  */
+import { actions } from 'astro:actions'
 import Shell from '../layouts/Shell.astro'
 import Badge from '../components/Badge.astro'
-import { runFlow } from '../lib/server/flows'
-import { flashFrom } from '../lib/flash'
+import { loadPage } from '../lib/server/page-data'
+import { flashFromResults } from '../lib/flash'
 import { fmtDate, fmtMoney, fmtPeriod } from '../lib/format'
 
 const id = Astro.locals.identity
-const cookieHeader = Astro.request.headers.get('cookie') || ''
-const { data } = await runFlow('/api/portal/billing', { locals: Astro.locals, cookieHeader })
+const { data } = await loadPage(Astro)
 const d: any = data || {}
-const flash = flashFrom(Astro.url)
+const flash = flashFromResults(Astro, [actions.setSupport, actions.setAutoRenew])
 
 const currency = (d.estimate && d.estimate.currency) || 'USD'
 const sub = d.subscription || null
@@ -111,7 +112,8 @@ const walletPacks = [
                             const isActive = (o.code || null) === currentSupport
                             const planCode = o.code || 'none'
                             return (
-                              <form method="POST" action={`/facturacion/soporte?planCode=${planCode}`}>
+                              <form method="POST" action={actions.setSupport}>
+                                <input type="hidden" name="planCode" value={planCode} />
                                 <button class={isActive ? 'active' : ''} type="submit">{o.label}</button>
                               </form>
                             )
@@ -128,7 +130,8 @@ const walletPacks = [
                           ? 'Tu suscripción se renueva automáticamente cada período.'
                           : 'Tu suscripción no se renovará al final del período.'}
                       </div>
-                      <form method="POST" action={`/facturacion/autorenew?enabled=${autoRenewOn ? 'false' : 'true'}`}>
+                      <form method="POST" action={actions.setAutoRenew}>
+                        <input type="hidden" name="enabled" value={autoRenewOn ? 'false' : 'true'} />
                         <button class={autoRenewOn ? 'btn' : 'btn primary'} type="submit">
                           {autoRenewOn ? 'Desactivar auto-renovación' : 'Reactivar auto-renovación'}
                         </button>

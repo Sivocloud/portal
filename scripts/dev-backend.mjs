@@ -36,18 +36,27 @@ const BACKEND_ENV_FILE = path.join(APP_ROOT, `.env.${devEnv}`);
 
 const TAG = { auth: '\x1b[35m[auth]\x1b[0m', be: '\x1b[36m[be]\x1b[0m' };
 
-function checkPortOpen(port) {
+function checkPortOpen(port, host = '127.0.0.1') {
   return new Promise((resolve) => {
-    const sock = createConnection({ port, host: '127.0.0.1' }, () => { sock.destroy(); resolve(true); });
+    const sock = createConnection({ port, host }, () => { sock.destroy(); resolve(true); });
     sock.on('error', () => resolve(false));
     sock.setTimeout(500, () => { sock.destroy(); resolve(false); });
   });
 }
 
+/**
+ * Espera a que el puerto escuche, en IPv4 **o** IPv6. `astro dev` (Node/Vite)
+ * bindea solo `[::1]` en macOS, así que chequear 127.0.0.1 solo daba un falso
+ * "no levantó" y el orchestrator mataba el server.
+ */
+async function portListening(port) {
+  return (await checkPortOpen(port, '127.0.0.1')) || (await checkPortOpen(port, '::1'));
+}
+
 async function waitForPort(port, ms = 15000) {
   const deadline = Date.now() + ms;
   while (Date.now() < deadline) {
-    if (await checkPortOpen(port)) return true;
+    if (await portListening(port)) return true;
     await new Promise((r) => setTimeout(r, 400));
   }
   return false;
@@ -104,7 +113,7 @@ console.log(`[dev-backend] env : ${devEnv}`);
 console.log(`[dev-backend] auth: http://localhost:${AUTH_PORT}`);
 console.log(`[dev-backend] be  : ${beScheme}://localhost:${BE_PORT}`);
 
-if (await checkPortOpen(AUTH_PORT)) {
+if (await portListening(AUTH_PORT)) {
   console.log(`[dev-backend] _auth ya está en :${AUTH_PORT} — reuso`);
 } else {
   console.log(`[dev-backend] arrancando _auth (:${AUTH_PORT}) via wrangler dev...`);

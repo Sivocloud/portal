@@ -21,30 +21,22 @@ import { createFlowEngineApp } from '@sivo/flow-engine/app'
 import { coreNodes } from '@sivo/flow-engine/nodes'
 
 import { getEnv } from './src/lib/env.mjs'
-
-import errorHandler500Flow from './flows/error-handler-500.flow.json' with { type: 'json' }
-import portalOverviewFlow  from './flows/portal.overview.flow.json' with { type: 'json' }
-import portalAppsFlow      from './flows/portal.apps.flow.json' with { type: 'json' }
-import portalBillingFlow   from './flows/portal.billing.flow.json' with { type: 'json' }
-import portalAppToggleFlow from './flows/portal.app.toggle.flow.json' with { type: 'json' }
-import portalSupportFlow   from './flows/portal.support.set.flow.json' with { type: 'json' }
-import portalAutoRenewFlow from './flows/portal.autorenew.set.flow.json' with { type: 'json' }
-import portalCheckoutFlow  from './flows/portal.billing-checkout.flow.json' with { type: 'json' }
-import portalSessionFlow   from './flows/portal.billing-portal.flow.json' with { type: 'json' }
-
 import { extraNodes } from './nodes/index.js'
 
-const FLOWS = {
-  'error-handler-500':    errorHandler500Flow,
-  'portal.overview':      portalOverviewFlow,
-  'portal.apps':          portalAppsFlow,
-  'portal.billing':       portalBillingFlow,
-  'portal.app.toggle':    portalAppToggleFlow,
-  'portal.support.set':   portalSupportFlow,
-  'portal.autorenew.set': portalAutoRenewFlow,
-  'portal.billing-checkout': portalCheckoutFlow,
-  'portal.billing-portal':   portalSessionFlow,
-}
+// ── Registro de flows ────────────────────────────────────────────────────
+// El directorio `flows/` ES el registro (mismo patrón que apps/sivo-pos): la
+// clave de cada flow es su filename sin `.flow.json` (notación dot:
+// `portal.billing-checkout`). Sin lista a mano no hay forma de agregar un flow
+// y olvidarse de registrarlo (antes eran 9 imports + 9 entradas que espejaban
+// el directorio).
+const flowModules = import.meta.glob('./flows/*.flow.json', { eager: true, import: 'default' })
+
+const FLOWS = Object.fromEntries(
+  Object.entries(flowModules).map(([file, flow]) => [
+    file.replace('./flows/', '').replace('.flow.json', ''),
+    flow,
+  ]),
+)
 
 const __dirname = (() => {
   try {

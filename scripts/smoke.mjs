@@ -112,6 +112,40 @@ for (const { path, expect } of pages) {
   await page.close()
 }
 
+// Actions: POST del form (zero-JS) → PRG → toast, con el estado restaurado.
+// Es el patrón más fácil de romper en silencio (si el middleware deja de
+// interceptar, el POST renderiza la página y el aviso no aparece).
+{
+  const page = await browser.newPage()
+  await page.goto(`${BASE}/facturacion`, { waitUntil: 'networkidle0', timeout: 30000 })
+
+  const clickAndToast = async () => {
+    const btn = await page.$('form[action*="_action=setAutoRenew"] button')
+    if (!btn) return null
+    await btn.click()
+    // El submit puede ser nativo (navega) o interceptado por el cliente de
+    // Actions (fetch + redirect): en los dos casos el resultado es el toast.
+    await page.waitForSelector('#toast .toast', { timeout: 15000 }).catch(() => {})
+    const text = await page
+      .$eval('#toast .toast', (el) => el.textContent.trim())
+      .catch(() => null)
+    // El toast se auto-descarta a los 3.5 s; lo saco para que el próximo read
+    // no lea el anterior.
+    await page.evaluate(() => document.querySelector('#toast .toast')?.remove())
+    return text
+  }
+
+  const first = await clickAndToast()
+  check('Action setAutoRenew → PRG + toast', !!first, first || 'sin toast')
+  const url = page.url()
+  check('PRG vuelve a la URL canónica', new URL(url).pathname === '/facturacion', url)
+
+  // Deshace el cambio (el smoke no debe mutar el tenant).
+  const second = await clickAndToast()
+  check('Action idempotente (estado restaurado)', !!second, second || 'sin toast')
+  await page.close()
+}
+
 await browser.close()
 console.log(`\n${fails.length === 0 ? 'TODO VERDE' : `${fails.length} FALLA(S): ${fails.join(', ')}`}\n`)
 process.exit(fails.length === 0 ? 0 : 1)

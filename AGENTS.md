@@ -36,26 +36,30 @@ _portal/
 ├── public/theme.js                    ← init del tema, parser-blocking (sin flash)
 ├── src/                               ← LA UI (Astro)
 │   ├── middleware.ts                  ← perímetro: SIVO_ENV + auth + 302/401 + fake dev
+│   │                                     + PRG de Actions (cookie de 1 uso) + caché de página
+│   ├── actions/index.ts               ← los writes (Astro Actions: Zod + PRG)
 │   ├── layouts/Shell.astro            ← sidebar + topbar + toast
 │   ├── lib/
-│   │   ├── nav.ts                     ← NAV / NAV_SOON (sidebar)
+│   │   ├── page-feeds.ts              ← TABLA DE RUTAS: pantalla ↔ flow ↔ nav (fuente única)
+│   │   ├── nav.ts                     ← NAV / NAV_SOON (derivados de page-feeds)
 │   │   ├── format.ts                  ← escape/fechas/moneda/badge/iconos
-│   │   ├── flash.ts                   ← códigos de flash del PRG
-│   │   └── server/flows.ts            ← `runFlow` (in-process) + `feEnv`
+│   │   ├── flash.ts                   ← resultado de Action → toast del shell
+│   │   └── server/
+│   │       ├── flows.ts               ← `runFlow` (in-process) + `feEnv`
+│   │       └── page-data.ts           ← `loadPage(Astro)`: dataset de la pantalla actual
 │   ├── components/                    ← Badge.astro, AppCard.astro
 │   ├── islands/paddle.ts              ← ÚNICA isla cliente (Paddle)
 │   ├── styles/app.css
 │   └── pages/
 │       ├── index.astro                → Inicio   (flow portal.overview)
 │       ├── aplicaciones.astro         → Apps     (flow portal.apps)
-│       ├── aplicaciones/toggle.ts     → POST + PRG
 │       ├── facturacion.astro          → Billing  (flow portal.billing)
-│       ├── facturacion/{soporte,autorenew}.ts   → POST + PRG
-│       ├── api/health.ts, api/facturacion/{checkout,portal}.ts  → JSON
-│       └── 404.astro? (no: Astro default)
+│       └── api/health.ts, api/facturacion/{checkout,portal}.ts  → JSON
 │
 ├── backend/                           ← FLOW-ENGINE RUNTIME ONLY
 │   ├── fe.mjs                         ← única instancia de flow-engine
+│   │                                     (los flows se registran con import.meta.glob:
+│   │                                      el filename ES la clave)
 │   ├── flows/
 │   │   ├── error-handler-500.flow.json
 │   │   ├── portal.overview.flow.json          ← GET  /portal/overview
@@ -75,7 +79,8 @@ _portal/
 │       └── dev/fake-auth-binding.mjs  ← dev-only: mock de `env.AUTH` (HTTP a :3031)
 └── scripts/
     ├── dev-backend.mjs                ← dev: _auth (:3031) + astro dev (:3034)
-    └── smoke.mjs                      ← smoke Chrome headless (CSP/SSR/isla)
+    ├── check-architecture.mjs         ← reglas duras del repo (8 reglas)
+    └── smoke.mjs                      ← smoke Chrome headless (CSP/SSR/isla/Actions)
 ```
 
 ## Cómo corre
@@ -115,6 +120,11 @@ bun run dev:dev    # [auth] :3031 (reusa si ya está) + astro dev :3034
    tema. Sin framework: TS vanilla, bundleado por Astro.
 6. **CSS vanilla** en `src/styles/app.css` (clases `.btn`, `.card`, `.badge`,
    `.kpi`, …). Sin Tailwind ni utilidades.
+7. **Una sola tabla de rutas** (`src/lib/page-feeds.ts`): path del flow, nav y
+   paths públicos salen de ahí. La página no repite el path — `loadPage(Astro)`
+   lo deriva de la URL.
+8. **Los writes son Astro Actions** (`src/actions/index.ts`): Zod + `runFlow` +
+   PRG. La Action no reimplementa negocio, sólo llama el flow.
 
 ## Agregar una sección
 
@@ -132,20 +142,21 @@ bun run dev:dev    # [auth] :3031 (reusa si ya está) + astro dev :3034
    ```
    Los nodos de lectura devuelven `{ data: {...} }` → el `transform` lo
    desenvuelve para que el body sea la data pelada.
-2. **Registralo** en `backend/fe.mjs` (import + entrada en `FLOWS`).
+   **No hay que registrarlo**: `fe.mjs` usa `import.meta.glob`, el filename ES
+   la clave del flow.
+2. **Fila en `src/lib/page-feeds.ts`** (fuente única): `pages`, `flow`, `path`
+   (el path público del flow, `/api/...`) y `nav`. El check de arquitectura
+   verifica que `path` coincida con el `http-in` del flow y que `flow` exista.
 3. **Página** `src/pages/<sección>.astro`:
    ```astro
-   const { data } = await runFlow('/api/portal/<sección>', {
-     locals: Astro.locals, cookieHeader: Astro.request.headers.get('cookie') || '',
-   })
+   const { data } = await loadPage(Astro)
    ```
    y renderizá con el `Shell.astro` (le pasás `title`, `active`, `user`,
-   `tenantId`).
-4. **Writes**: endpoint `src/pages/<sección>/<acción>.ts` (POST) que llama el
-   flow y hace `redirect('/<sección>?flash=<code>', 303)`; sumá el código en
-   `src/lib/flash.ts`.
-5. **Nav**: agregá la entrada en `NAV` (o movela de `NAV_SOON`) en
-   `src/lib/nav.ts`.
+   `tenantId`). El nav sale solo (derivado de `page-feeds`).
+4. **Writes**: una Action en `src/actions/index.ts` (`defineAction` con Zod) que
+   llama el flow con `runFlow` y devuelve `{ toast }`; el middleware hace el PRG
+   con una cookie de un solo uso. En la página, un `<form action={actions.x}>` +
+   `flashFromResults(Astro, [actions.x])` para el toast.
 
 ## Gotchas que ya nos mordieron
 
@@ -153,15 +164,21 @@ bun run dev:dev    # [auth] :3031 (reusa si ya está) + astro dev :3034
   `defineConfig(({command}) => ({...}))`, el adapter NO inyecta sus plugins de
   Vite y el SSR corre en Node → `Cannot find module 'cloudflare:workers'`.
   Calculá todo a nivel de módulo (`process.env.NODE_ENV` distingue dev/build).
+  Lo verifica el check de arquitectura (regla 8).
 - **`security.csp.scriptDirective.resources` / `styleDirective.resources`
   REEMPLAZAN el `'self'` por defecto** (no lo suman). Si no incluís `'self'`,
   la app queda sin CSS y sin isla. El smoke test lo detecta.
 - **Los flows se montan bajo `/api`** (`httpNodeRoot`). `runFlow` recibe el
   path completo: `/api/portal/overview`, no `/portal/overview`.
+- **`context.originPathname` trae trailing slash** (`/facturacion/`): hay que
+  sacarlo al redirigir y al matchear la ruta (`feedFor` normaliza) o la página
+  renderiza vacía (el path no matchea la tabla).
+- **Astro Actions form**: el `<form>` renderiza `action="?_action=<nombre>"`.
+  El middleware intercepta con `getActionContext()`, guarda el resultado en una
+  cookie y redirige; la página lo lee con `Astro.getActionResult()`.
 - **Astro ignora archivos/dirs con prefijo `_`** en `src/pages/`.
 - **Nada de `style="…"` inline ni `onclick=`**: la CSP es estricta. Para barras
-  usá `<progress>` o clases; `data-action`-style no aplica (usá `<form>` para
-  writes).
+  usá `<progress>` o clases; los writes van por `<form>` + Action.
 - **Dev no emite CSP** (Astro sólo la manda en el build). Para validar CSP
   corré `astro build` + `astro preview` + `bun run smoke`. El modo "fake auth"
   en un build local se activa con `DEV_AUTH_FAKE=1` (en `wrangler.preview.jsonc`).
@@ -169,6 +186,17 @@ bun run dev:dev    # [auth] :3031 (reusa si ya está) + astro dev :3034
   `ASTRO_DEV_BACKGROUND=1` para forzar foreground (el nombre engaña).
 - **El config de dev es FLAT** (`wrangler.preview.jsonc`): el plugin de CF no
   resuelve `services`/`vars` de un `wrangler.jsonc` anidado por `env`.
+- **`astro preview` puede quedar zombie** (el `pkill` mata el launcher, no el
+  server). Si el smoke falla con 500 en `/_astro/*` y CSS sin aplicar, matá el
+  proceso del puerto y levantá uno solo.
+
+## Check de arquitectura
+
+`bun run check` corre `lint-flows` + `audit-nodes` + `check:arch` +
+`astro check`. Las 8 reglas de `scripts/check-architecture.mjs` son las mismas
+que `apps/sivo-pos` (adaptadas: sin RBAC, sin DB): engine sin Astro, capa vieja
+que no vuelve, registro por glob, `page-feeds` ↔ `http-in`, un solo perímetro,
+`runFlow` bajo `/api`, CSP estricta y `defineConfig` objeto plano.
 
 ## Nodos/RPC
 
@@ -192,7 +220,7 @@ En dev apuntan a los puertos locales.
 ## Deploy
 
 ```bash
-bun run check        # lint-flows + audit-nodes + astro check
+bun run check        # lint-flows + audit-nodes + check:arch + astro check
 bun run smoke        # contra un build (astro preview)
 wrangler deploy --env prod
 ```
@@ -208,3 +236,8 @@ Service Binding `AUTH` declarado en `wrangler.jsonc`
   nuevos RPC en `_auth` (no darle D1 al portal).
 - **Facturación**: read + writes acotados (soporte, auto-renovación) + Paddle
   (checkout/portal). El cobro recurrente y el overage los maneja `_controlplane`.
+- **Fuentes self-hosted** (Astro Fonts API, como sivo-pos): hoy Inter viene de
+  Google Fonts; self-hosteada baja el FCP y saca `fonts.googleapis.com` /
+  `fonts.gstatic.com` de la CSP.
+- **Editor de flows** (`/_editor`, read-only con Basic Auth): sivo-pos lo sirve
+  desde el mismo worker; el portal todavía no.

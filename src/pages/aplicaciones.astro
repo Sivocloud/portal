@@ -2,21 +2,21 @@
 /**
  * aplicaciones.astro — Apps del tenant + catálogo instalable.
  *
- * Dataset: read flow `portal.apps` (catalog + installed en 2 RPC a `_auth`).
- * Los writes (desinstalar / reinstalar) son POST a `/aplicaciones/toggle` que
- * llama el flow y vuelve por PRG (ver F3).
+ * Dataset: read flow de la pantalla (`portal.apps`: catalog + installed en 2
+ * RPC a `_auth`) vía `loadPage(Astro)`. Los writes (desinstalar / reinstalar)
+ * son la Action `appToggle` (POST + PRG; ver `src/actions/index.ts`).
  */
+import { actions } from 'astro:actions'
 import Shell from '../layouts/Shell.astro'
 import Badge from '../components/Badge.astro'
-import { runFlow } from '../lib/server/flows'
-import { flashFrom } from '../lib/flash'
+import { loadPage } from '../lib/server/page-data'
+import { flashFromResults } from '../lib/flash'
 import { fmtDate, fmtMoney } from '../lib/format'
 
 const id = Astro.locals.identity
-const cookieHeader = Astro.request.headers.get('cookie') || ''
-const { data } = await runFlow('/api/portal/apps', { locals: Astro.locals, cookieHeader })
+const { data } = await loadPage(Astro)
 const d: any = data || {}
-const flash = flashFrom(Astro.url)
+const flash = flashFromResults(Astro, [actions.appToggle])
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const currency = 'USD'
@@ -77,12 +77,16 @@ const bySlug = new Map(installed.map((a) => [a.appSlug, a]))
                         {canManage && (
                           <div class="actions">
                             {app.status === 'deleted' && (
-                              <form method="POST" action={`/aplicaciones/toggle?action=reactivate&appSlug=${encodeURIComponent(app.appSlug)}`}>
+                              <form method="POST" action={actions.appToggle}>
+                                <input type="hidden" name="action" value="reactivate" />
+                                <input type="hidden" name="appSlug" value={app.appSlug} />
                                 <button class="btn primary sm" type="submit">Reinstalar</button>
                               </form>
                             )}
                             {app.status === 'active' && (
-                              <form method="POST" action={`/aplicaciones/toggle?action=uninstall&appSlug=${encodeURIComponent(app.appSlug)}`}>
+                              <form method="POST" action={actions.appToggle}>
+                                <input type="hidden" name="action" value="uninstall" />
+                                <input type="hidden" name="appSlug" value={app.appSlug} />
                                 <button class="btn sm danger" type="submit">Desinstalar</button>
                               </form>
                             )}

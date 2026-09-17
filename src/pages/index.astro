@@ -2,17 +2,17 @@
 /**
  * index.astro — Inicio: hero del tenant + apps instaladas.
  *
- * El dataset sale del read flow `portal.overview` (2 RPC a `_auth`
- * combinados), llamado in-process durante el render. No hay fetch del cliente.
+ * El dataset sale del read flow de esta pantalla (`portal.overview`, 2 RPC a
+ * `_auth` combinados) vía `loadPage(Astro)`: el flow se deriva del path en
+ * `lib/page-feeds.ts`. No hay fetch del cliente.
  */
 import Shell from '../layouts/Shell.astro'
 import AppCard from '../components/AppCard.astro'
-import { runFlow } from '../lib/server/flows'
+import { loadPage } from '../lib/server/page-data'
 import { getAppsBase, getAppBases } from '../../backend/src/lib/env.mjs'
 
 const id = Astro.locals.identity
-const cookieHeader = Astro.request.headers.get('cookie') || ''
-const { data } = await runFlow('/api/portal/overview', { locals: Astro.locals, cookieHeader })
+const { data } = await loadPage(Astro)
 const d: any = data || {}
 
 const tenant = d.tenant || {}
