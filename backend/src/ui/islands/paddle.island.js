@@ -145,6 +145,10 @@ function checkoutError(res) {
   const reason = res && res.reason
   if (reason === 'paddle_not_configured') return 'El pago todavía no está habilitado.'
   if (reason === 'no_billable_items') return 'No hay conceptos facturables para suscribir.'
+  if (reason === 'missing_price_ids') {
+    const codes = Array.isArray(res.missingPriceIds) ? res.missingPriceIds.join(', ') : ''
+    return `Falta configurar el precio en Paddle${codes ? ` (${codes})` : ''}. Contactanos para habilitarlo.`
+  }
   if (reason === 'missing_custom_product') return 'Falta configurar el producto de cargos puntuales.'
   if (reason === 'no_customer_email') return 'Necesitamos un email de facturación en tu cuenta.'
   return res && res.error ? res.error : 'No pudimos iniciar el pago. Probá de nuevo.'

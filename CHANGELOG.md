@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.7.2] — 2026-09-16 — Mensaje claro cuando falta un precio en Paddle
+
+### Added
+
+- Isla `paddle`: `checkoutError` reconoce `missing_price_ids` y muestra
+  "Falta configurar el precio en Paddle (…)" con los códigos faltantes. Antes
+  ese caso caía en el mensaje genérico.
+
 ## [v0.7.1] — 2026-09-16 — Log del dev server con el scheme real
 
 ### Fixed
